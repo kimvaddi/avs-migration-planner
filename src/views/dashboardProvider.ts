@@ -171,7 +171,7 @@ ${costs.map(c => `<tr${c.nodeType === bestFit.nodeType.type ? ' class="best-fit"
     <td>$${c.savingsRI3Year.toLocaleString()}/yr</td>
 </tr>`).join('\n')}
 </table>
-<p class="note">Pricing is approximate (US East reference). Please verify with the Azure Pricing Calculator for current rates.</p>
+<p class="note">&#9888; Pricing sourced from the <a href="https://prices.azure.com">Azure Retail Prices API</a> where available, with fallback estimates for unavailable SKUs. Always verify final pricing with the <a href="https://azure.microsoft.com/pricing/calculator/">Azure Pricing Calculator</a> before making purchasing decisions. Reserved Instance pricing may not be available from the public API — contact your Microsoft account team for RI quotes.</p>
 
 ${bestCost ? `
 <h3>Best Fit Cost Summary (${bestFit.nodeType.type})</h3>

@@ -93,6 +93,25 @@ export const AVS_NODE_SPECS: AVSNodeSpec[] = [
 ];
 
 /**
+ * Update AVS_NODE_SPECS pricing from live API data.
+ * Only updates pricing fields; hardware specs remain unchanged.
+ */
+export function updateNodePricing(liveNodes: { skuName: string; monthlyRate: number; ri1YearMonthly?: number; ri3YearMonthly?: number }[]): void {
+    for (const liveNode of liveNodes) {
+        const spec = AVS_NODE_SPECS.find(s => s.type === liveNode.skuName);
+        if (spec && liveNode.monthlyRate > 0) {
+            spec.payAsYouGoMonthly = liveNode.monthlyRate;
+            if (liveNode.ri1YearMonthly) {
+                spec.ri1YearMonthly = liveNode.ri1YearMonthly;
+            }
+            if (liveNode.ri3YearMonthly) {
+                spec.ri3YearMonthly = liveNode.ri3YearMonthly;
+            }
+        }
+    }
+}
+
+/**
  * Cluster sizing recommendation.
  */
 export interface ClusterRecommendation {

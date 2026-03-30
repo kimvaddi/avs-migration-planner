@@ -14,8 +14,11 @@ import { SizingResult } from './models/avsNode';
 import { CostEstimate, MigrationWavePlan, HCXConfiguration } from './models/migrationPlan';
 import { DashboardProvider } from './views/dashboardProvider';
 import { VMInventoryTreeProvider, RecommendationsTreeProvider } from './views/treeProviders';
+import { fetchAVSPricing, AVSLivePricing } from './pricing/azurePricingClient';
+import { updateNodePricing } from './models/avsNode';
 
 // Extension state
+let currentPricing: AVSLivePricing | undefined;
 let currentVMs: VMInventoryItem[] = [];
 let currentSummary: InventorySummary | undefined;
 let currentSizing: SizingResult | undefined;
@@ -75,6 +78,24 @@ export function activate(context: vscode.ExtensionContext) {
         currentVMs = parseResult.vms;
         currentSummary = analyzeInventory(currentVMs);
         const requirements = calculateRequirements(currentSummary);
+
+        // Fetch live pricing from Azure Retail Prices API
+        let pricingSource = 'fallback estimates';
+        try {
+            await vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title: 'Fetching live AVS pricing...' },
+                async () => {
+                    currentPricing = await fetchAVSPricing('eastus');
+                    if (currentPricing.source === 'live-api') {
+                        updateNodePricing(currentPricing.nodes);
+                        pricingSource = `live API (${currentPricing.region})`;
+                    }
+                }
+            );
+        } catch {
+            pricingSource = 'fallback estimates (API unavailable)';
+        }
+
         currentSizing = generateSizingRecommendations(
             requirements.requiredVCPUs,
             requirements.requiredMemoryGB,
@@ -90,7 +111,8 @@ export function activate(context: vscode.ExtensionContext) {
 
         vscode.window.showInformationMessage(
             `Imported ${parseResult.vms.length} VMs (${parseResult.format} format). ` +
-            `Best fit: ${currentSizing.bestFit.nodeType.displayName} × ${currentSizing.bestFit.nodesRequired} nodes.`
+            `Best fit: ${currentSizing.bestFit.nodeType.displayName} × ${currentSizing.bestFit.nodesRequired} nodes. ` +
+            `Pricing: ${pricingSource}.`
         );
     });
 

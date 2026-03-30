@@ -10,6 +10,7 @@ webpack.config.js
 test-data/**
 RUNBOOK.md
 Prompts.txt
+scripts/**
 **/*.map
 **/*.ts
 !dist/**
