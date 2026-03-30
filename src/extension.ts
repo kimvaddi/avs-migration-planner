@@ -16,6 +16,7 @@ import { DashboardProvider } from './views/dashboardProvider';
 import { VMInventoryTreeProvider, RecommendationsTreeProvider } from './views/treeProviders';
 import { fetchAVSPricing, AVSLivePricing } from './pricing/azurePricingClient';
 import { updateNodePricing } from './models/avsNode';
+import { registerChatParticipant } from './chat/chatParticipant';
 
 // Extension state
 let currentPricing: AVSLivePricing | undefined;
@@ -44,6 +45,16 @@ export function activate(context: vscode.ExtensionContext) {
             updateRecommendationsTree(recTreeProvider);
         }
     }
+
+    // Register @avs chat participant for AI-assisted mode
+    registerChatParticipant(context, {
+        getVMs: () => currentVMs,
+        getSummary: () => currentSummary,
+        getSizing: () => currentSizing,
+        getCosts: () => currentCosts,
+        getWavePlan: () => currentWavePlan,
+        getHCXConfig: () => currentHCXConfig
+    });
 
     vscode.window.registerTreeDataProvider('avsMigrationPlanner.vmInventory', vmTreeProvider);
     vscode.window.registerTreeDataProvider('avsMigrationPlanner.recommendations', recTreeProvider);

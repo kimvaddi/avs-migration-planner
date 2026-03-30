@@ -14,7 +14,7 @@
     "url": "https://github.com/KimVaddi/avs-migration-planner"
   },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.93.0"
   },
   "categories": [
     "Azure",
@@ -92,7 +92,38 @@
           "group": "navigation"
         }
       ]
-    }
+    },
+    "chatParticipants": [
+      {
+        "id": "avsMigrationPlanner.chat",
+        "fullName": "AVS Migration Planner",
+        "name": "avs",
+        "description": "Ask questions about your Azure VMware Solution migration plan — sizing, costs, risks, waves, and architecture.",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "analyze",
+            "description": "Deep analysis of the imported VM inventory with AI insights"
+          },
+          {
+            "name": "recommend",
+            "description": "Architecture recommendations based on workload mix"
+          },
+          {
+            "name": "risk",
+            "description": "Risk assessment for each migration wave"
+          },
+          {
+            "name": "optimize",
+            "description": "Cost optimization suggestions"
+          },
+          {
+            "name": "explain",
+            "description": "Explain any part of the migration plan in plain language"
+          }
+        ]
+      }
+    ]
   },
   "configuration": {
     "title": "AVS Migration Planner",
@@ -150,7 +181,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.0",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.93.0",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "@vscode/vsce": "^2.22.0",
