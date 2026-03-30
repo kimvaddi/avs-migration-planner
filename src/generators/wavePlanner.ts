@@ -3,6 +3,27 @@ import { MigrationWave, MigrationWavePlan, NetworkExtension } from '../models/mi
 
 /**
  * Configuration for wave planning.
+ * 
+ * Throughput research notes (VMware HCX 4.10 Configuration Maximums):
+ * 
+ * | Type    | Concurrency        | Throughput factor                        |
+ * |---------|--------------------|------------------------------------------|
+ * | Bulk    | 300/mgr, 200/IX    | Network-bound: 850Mbps-1.65Gbps per flow |
+ * | vMotion | 1/service mesh     | Single stream: ~50-100 GB/hr             |
+ * | RAV     | 300/mgr, 200/IX    | Parallel replication + zero-downtime     |
+ * | Cold    | 1/service mesh     | NFC protocol, queued after vMotion       |
+ * 
+ * Network Extension: 4-6+ Gbps per NE appliance.
+ * 
+ * Real-world throughput depends on: ExpressRoute bandwidth (1/10 Gbps),
+ * WAN latency, MTU, vSAN I/O, changed block rate, compression.
+ * 
+ * Conservative planning defaults (assuming 1 Gbps ExpressRoute):
+ * - Bulk/RAV (parallel, multiple VMs):    ~100 GB/hr aggregate
+ * - vMotion (single VM, serial):          ~50 GB/hr per VM
+ * - Cold:                                 ~75 GB/hr per VM
+ * 
+ * With 10 Gbps ExpressRoute, multiply by ~5-8×.
  */
 export interface WavePlannerConfig {
     /** Maximum VMs per wave */
@@ -13,8 +34,16 @@ export interface WavePlannerConfig {
     maxStoragePerWaveGB: number;
     /** Days between wave starts */
     daysBetweenWaves: number;
-    /** Estimated GB/hour migration throughput per VM */
-    migrationThroughputGBPerHour: number;
+    /**
+     * Aggregate GB/hour throughput for the entire wave (all VMs in parallel).
+     * Default: 100 GB/hr (conservative, assumes 1 Gbps ExpressRoute with overhead).
+     * For 10 Gbps ExpressRoute: use 500-800 GB/hr.
+     */
+    waveThroughputGBPerHour: number;
+    /**
+     * ExpressRoute bandwidth tier. Affects throughput estimation.
+     */
+    expressRouteBandwidth: '1gbps' | '10gbps';
 }
 
 const DEFAULT_CONFIG: WavePlannerConfig = {
@@ -22,7 +51,8 @@ const DEFAULT_CONFIG: WavePlannerConfig = {
     maxVCPUsPerWave: 200,
     maxStoragePerWaveGB: 5000,
     daysBetweenWaves: 3,
-    migrationThroughputGBPerHour: 50
+    waveThroughputGBPerHour: 100,
+    expressRouteBandwidth: '1gbps'
 };
 
 /**
@@ -274,7 +304,15 @@ function createWave(waveNumber: number, vms: VMInventoryItem[], cfg: WavePlanner
     }
 
     const totalStorageGB = vms.reduce((sum, vm) => sum + vm.storageGB, 0);
-    const estimatedHours = Math.max(1, Math.ceil(totalStorageGB / cfg.migrationThroughputGBPerHour));
+
+    // Wave duration = total storage / aggregate wave throughput.
+    // Throughput is for the entire wave (all VMs replicating in parallel via Bulk/RAV).
+    // Add 2 hours switchover buffer per wave for final sync + cutover.
+    const replicationHours = totalStorageGB > 0
+        ? Math.ceil(totalStorageGB / cfg.waveThroughputGBPerHour)
+        : 0;
+    const switchoverBufferHours = 2;
+    const estimatedHours = Math.max(1, replicationHours + switchoverBufferHours);
 
     return {
         waveNumber,
@@ -359,6 +397,9 @@ export function exportWavePlanText(plan: MigrationWavePlan): string {
     lines.push(`Total Waves: ${plan.totalWaves}`);
     lines.push(`Estimated Duration: ${plan.estimatedTotalDays} days`);
     lines.push(`Network Extensions: ${plan.networkExtensions.length}`);
+    lines.push('');
+    lines.push('Assumptions: 100 GB/hr aggregate throughput (1 Gbps ExpressRoute), 2hr switchover buffer per wave.');
+    lines.push('For 10 Gbps ExpressRoute, divide durations by ~5-8×. See HCX 4.10 Config Maximums for details.');
     lines.push('');
 
     for (const wave of plan.waves) {
