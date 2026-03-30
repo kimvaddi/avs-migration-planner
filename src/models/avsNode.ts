@@ -6,7 +6,7 @@
 
 export interface AVSNodeSpec {
     /** Node type identifier */
-    type: 'AV36' | 'AV36P' | 'AV52';
+    type: 'AV36' | 'AV36P' | 'AV52' | 'AV48' | 'AV64';
     /** Display name */
     displayName: string;
     /** Physical CPU cores per node */
@@ -89,6 +89,34 @@ export const AVS_NODE_SPECS: AVSNodeSpec[] = [
         payAsYouGoMonthly: 18816,
         ri1YearMonthly: 13171,
         ri3YearMonthly: 9408
+    },
+    {
+        type: 'AV48',
+        displayName: 'AV48 (Gen 2 - ESA)',
+        cpuCores: 48,
+        usableVCPUs: 72,    // 48 cores * 2 HT - ~25% overhead
+        ramGB: 1024,
+        usableRamGB: 870,   // ~85% usable
+        rawStorageTB: 25.6,
+        usableStorageTB: 9.0, // 25.6 * 0.35
+        cacheTB: 0,         // ESA - no separate cache tier
+        payAsYouGoMonthly: 15979,
+        ri1YearMonthly: 11185,
+        ri3YearMonthly: 7990
+    },
+    {
+        type: 'AV64',
+        displayName: 'AV64 (Gen 2)',
+        cpuCores: 64,
+        usableVCPUs: 96,    // 64 cores * 2 HT - ~25% overhead
+        ramGB: 1024,
+        usableRamGB: 870,   // ~85% usable
+        rawStorageTB: 15.36,  // OSA variant; ESA = 19.25 TB
+        usableStorageTB: 5.4, // 15.36 * 0.35 (OSA)
+        cacheTB: 3.84,
+        payAsYouGoMonthly: 16714,
+        ri1YearMonthly: 11700,
+        ri3YearMonthly: 8357
     }
 ];
 

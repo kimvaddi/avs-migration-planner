@@ -13,7 +13,7 @@ Plan, size, and estimate Azure VMware Solution (AVS) migrations directly from VS
 
 ### 2. AVS Node Recommendations
 - Analyzes CPU, memory, and storage requirements
-- Recommends best-fit node type: **AV36**, **AV36P**, or **AV52**
+- Recommends best-fit node type: **AV36**, **AV36P**, **AV52** (Gen 1) and **AV48**, **AV64** (Gen 2)
 - Calculates cluster count with multi-cluster support
 - Utilization scoring (CPU, RAM, Storage) with a fit score algorithm
 
@@ -80,11 +80,20 @@ Use a simple CSV with these column names:
 
 ## AVS Node Specifications
 
+### Gen 1 (OSA Architecture)
+
 | Node Type | vCPUs (Usable) | RAM (Usable) | Storage (Usable) |
 |-----------|---------------|--------------|-------------------|
 | AV36 | 54 | 490 GB | 5.4 TB |
 | AV36P | 54 | 653 GB | 6.7 TB |
 | AV52 | 78 | 1,306 GB | 13.4 TB |
+
+### Gen 2 (ESA Architecture)
+
+| Node Type | vCPUs (Usable) | RAM (Usable) | Storage (Usable) |
+|-----------|---------------|--------------|-------------------|
+| AV48 | 72 | 870 GB | 9.0 TB |
+| AV64 | 96 | 870 GB | 5.4 TB |
 
 *Usable capacity accounts for ESXi/vSAN overhead and FTT=1 RAID-1 mirroring.*
 
@@ -109,7 +118,7 @@ This extension contributes the following:
 ### 1.0.0
 - Initial release
 - CSV/RVTools import with auto-detection
-- AVS node sizing (AV36, AV36P, AV52)
+- AVS node sizing (AV36, AV36P, AV52, AV48, AV64)
 - Cost comparison (PAYG, 1yr RI, 3yr RI)
 - HCX mobility group and network extension generation
 - Bicep template generation (Private Cloud, ExpressRoute, NSX-T)

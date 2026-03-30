@@ -216,6 +216,22 @@ function getFallbackPricing(region: string): AVSLivePricing {
                 monthlyRate: 18816,
                 ri1YearMonthly: 13171,
                 ri3YearMonthly: 9408
+            },
+            {
+                skuName: 'AV48',
+                displayName: 'AV48 (Gen 2 - ESA)',
+                hourlyRate: 21.89,
+                monthlyRate: 15979,
+                ri1YearMonthly: 11185,
+                ri3YearMonthly: 7990
+            },
+            {
+                skuName: 'AV64',
+                displayName: 'AV64 (Gen 2)',
+                hourlyRate: 22.89,
+                monthlyRate: 16714,
+                ri1YearMonthly: 11700,
+                ri3YearMonthly: 8357
             }
         ]
     };
