@@ -55,9 +55,9 @@ export const AVS_NODE_SPECS: AVSNodeSpec[] = [
         usableVCPUs: 54,   // 36 cores * 2 HT - ~25% overhead
         ramGB: 576,
         usableRamGB: 490,  // ~85% usable
-        rawStorageTB: 15.36,
-        usableStorageTB: 5.4, // 15.36 * 0.35
-        cacheTB: 3.2,
+        rawStorageTB: 15.20, // Official: 15.20 TB SSD (NOT NVMe)
+        usableStorageTB: 5.3, // 15.20 * 0.35
+        cacheTB: 3.2,      // NVMe cache tier
         payAsYouGoMonthly: 10720,
         ri1YearMonthly: 7504,
         ri3YearMonthly: 5360
@@ -69,9 +69,9 @@ export const AVS_NODE_SPECS: AVSNodeSpec[] = [
         usableVCPUs: 54,
         ramGB: 768,
         usableRamGB: 653,
-        rawStorageTB: 19.2,
-        usableStorageTB: 6.7, // 19.2 * 0.35
-        cacheTB: 3.2,
+        rawStorageTB: 19.20, // Official: 19.20 TB NVMe
+        usableStorageTB: 6.7, // 19.20 * 0.35
+        cacheTB: 1.5,       // Intel Cache tier (NOT NVMe)
         payAsYouGoMonthly: 12864,
         ri1YearMonthly: 9005,
         ri3YearMonthly: 6432
@@ -83,9 +83,9 @@ export const AVS_NODE_SPECS: AVSNodeSpec[] = [
         usableVCPUs: 78,   // 52 cores * 2 HT - ~25% overhead
         ramGB: 1536,
         usableRamGB: 1306,
-        rawStorageTB: 38.4,
-        usableStorageTB: 13.4, // 38.4 * 0.35
-        cacheTB: 6.4,
+        rawStorageTB: 38.40, // Official: 38.40 TB NVMe
+        usableStorageTB: 13.4, // 38.40 * 0.35
+        cacheTB: 1.5,       // Intel Cache tier
         payAsYouGoMonthly: 18816,
         ri1YearMonthly: 13171,
         ri3YearMonthly: 9408
@@ -106,14 +106,16 @@ export const AVS_NODE_SPECS: AVSNodeSpec[] = [
     },
     {
         type: 'AV64',
-        displayName: 'AV64 (Gen 2)',
+        displayName: 'AV64 (Gen 2 - Extension Only)',
         cpuCores: 64,
         usableVCPUs: 96,    // 64 cores * 2 HT - ~25% overhead
         ramGB: 1024,
         usableRamGB: 870,   // ~85% usable
-        rawStorageTB: 15.36,  // OSA variant; ESA = 19.25 TB
+        rawStorageTB: 15.36,  // OSA variant; ESA Gen 2 = 19.25 TB
         usableStorageTB: 5.4, // 15.36 * 0.35 (OSA)
-        cacheTB: 3.84,
+        cacheTB: 3.84,        // OSA only; ESA = N/A
+        // NOTE: AV64 requires existing AV36/AV36P/AV52 private cloud.
+        // Cannot be used as standalone initial deployment.
         payAsYouGoMonthly: 16714,
         ri1YearMonthly: 11700,
         ri3YearMonthly: 8357
