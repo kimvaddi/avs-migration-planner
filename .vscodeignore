@@ -1,0 +1,15 @@
+.vscode/**
+.vscode-test/**
+src/**
+out/**
+node_modules/**
+.gitignore
+tsconfig.json
+webpack.config.js
+.mocharc.json
+test-data/**
+RUNBOOK.md
+Prompts.txt
+**/*.map
+**/*.ts
+!dist/**

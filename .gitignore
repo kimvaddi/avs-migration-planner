@@ -1,0 +1,12 @@
+node_modules/
+out/
+dist/
+.vscode-test/
+*.vsix
+prompts.txt
+
+# Private development files
+RUNBOOK.md
+Prompts.txt
+src/test/
+test-data/

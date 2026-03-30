@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Server stack (on-prem VMs) -->
+  <rect x="1" y="8" width="8" height="3" rx="0.5"/>
+  <rect x="1" y="12" width="8" height="3" rx="0.5"/>
+  <rect x="1" y="16" width="8" height="3" rx="0.5"/>
+  <circle cx="3" cy="9.5" r="0.5" fill="currentColor"/>
+  <circle cx="3" cy="13.5" r="0.5" fill="currentColor"/>
+  <circle cx="3" cy="17.5" r="0.5" fill="currentColor"/>
+
+  <!-- Migration arrow -->
+  <path d="M 10.5 13.5 L 14.5 13.5"/>
+  <polyline points="13,11.5 15.5,13.5 13,15.5"/>
+
+  <!-- Azure cloud -->
+  <path d="M 16.5,16 C 15.5,16 14.8,15 15,14 C 15.2,13 16,12.2 17,12.3 C 17.2,11 18.2,10 19.5,10 C 21,10 22.2,11 22.2,12.5 C 23,12.5 23.5,13.2 23.5,14 C 23.5,15 23,15.8 22,16 Z"/>
+
+  <!-- Planning wave line at top -->
+  <polyline points="3,4 7,6 11,3.5 15,5.5 19,3 23,5" stroke-width="1" opacity="0.7"/>
+  <circle cx="3" cy="4" r="0.8" fill="currentColor" opacity="0.7"/>
+  <circle cx="11" cy="3.5" r="0.8" fill="currentColor" opacity="0.7"/>
+  <circle cx="19" cy="3" r="0.8" fill="currentColor" opacity="0.7"/>
+</svg>

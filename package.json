@@ -1,0 +1,124 @@
+{
+  "name": "avs-migration-planner",
+  "displayName": "AVS Migration Planner",
+  "description": "Azure VMware Solution migration planner - Import VM inventories, recommend AVS node types, calculate costs, generate HCX configs, Bicep templates, and migration wave plans.",
+  "version": "1.0.0",
+  "publisher": "KimVaddi",
+  "author": {
+    "name": "KimVaddi"
+  },
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KimVaddi/avs-migration-planner"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Azure",
+    "Other"
+  ],
+  "keywords": [
+    "azure",
+    "vmware",
+    "avs",
+    "migration",
+    "hcx",
+    "bicep",
+    "cloud"
+  ],
+  "activationEvents": [
+    "onView:avsMigrationPlanner.vmInventory",
+    "onView:avsMigrationPlanner.recommendations"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "avsMigrationPlanner.importInventory",
+        "title": "AVS: Import VM Inventory (CSV/RVTools)",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "avsMigrationPlanner.showDashboard",
+        "title": "AVS: Open Migration Dashboard",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "avsMigrationPlanner.generateBicep",
+        "title": "AVS: Generate Bicep Templates"
+      },
+      {
+        "command": "avsMigrationPlanner.generateHcxConfig",
+        "title": "AVS: Generate HCX Configuration"
+      },
+      {
+        "command": "avsMigrationPlanner.generateWavePlan",
+        "title": "AVS: Generate Migration Wave Plan"
+      },
+      {
+        "command": "avsMigrationPlanner.exportReport",
+        "title": "AVS: Export Full Migration Report"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "avsMigrationPlanner",
+          "title": "AVS Migration Planner",
+          "icon": "media/avs-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "avsMigrationPlanner": [
+        {
+          "id": "avsMigrationPlanner.vmInventory",
+          "name": "VM Inventory"
+        },
+        {
+          "id": "avsMigrationPlanner.recommendations",
+          "name": "Recommendations"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "avsMigrationPlanner.importInventory",
+          "when": "view == avsMigrationPlanner.vmInventory",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests",
+    "test": "mocha --require ts-node/register 'src/test/unit/**/*.test.ts' --timeout 10000",
+    "test:unit": "mocha --require ts-node/register 'src/test/unit/**/*.test.ts' --timeout 10000",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.56.0",
+    "mocha": "^10.2.0",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
+  }
+}
