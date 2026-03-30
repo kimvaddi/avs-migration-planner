@@ -75,9 +75,20 @@ export function generateWavePlan(
     // Step 1: Group VMs by dependency (explicit → network-based → individual)
     const depGroups = groupByDependency(activeVMs);
 
-    // Step 2: Sort groups by size (largest first) for bin-packing
+    // Step 2: Sort groups by infrastructure tier priority, then by size.
+    // Infrastructure tiers should migrate before application tiers:
+    //   Tier 0: Infrastructure (DNS, AD, DHCP, NTP) — migrate first
+    //   Tier 1: Database / data tier — migrate before app servers
+    //   Tier 2: Application / middleware tier
+    //   Tier 3: Web / frontend tier — migrate last (depends on app + db)
+    //   Tier 9: Ungrouped / unknown
     const sortedGroups = Array.from(depGroups.entries())
-        .sort((a, b) => b[1].length - a[1].length);
+        .sort((a, b) => {
+            const tierA = inferTierPriority(a[0], a[1]);
+            const tierB = inferTierPriority(b[0], b[1]);
+            if (tierA !== tierB) {return tierA - tierB;} // Lower tier = earlier wave
+            return b[1].length - a[1].length; // Then by size (largest first for packing)
+        });
 
     // Step 3: Bin-pack groups into waves respecting capacity limits
     const waves: MigrationWave[] = [];
@@ -384,6 +395,39 @@ function assessWaveRisk(wave: MigrationWave): 'low' | 'medium' | 'high' {
         return 'medium';
     }
     return 'low';
+}
+
+/**
+ * Infer infrastructure tier priority from group name and VM names.
+ * Lower number = migrates earlier (infrastructure before application before web).
+ */
+function inferTierPriority(groupKey: string, vms: VMInventoryItem[]): number {
+    const lower = groupKey.toLowerCase();
+    const vmNames = vms.map(v => v.name.toLowerCase()).join(' ');
+    const combined = lower + ' ' + vmNames;
+
+    // Tier 0: Infrastructure (DNS, AD, DHCP, NTP, domain controllers)
+    if (/\b(infra|infrastructure|dns|ad\b|dhcp|ntp|dc\b|domain|ldap|pki|cert)\b/.test(combined)) {
+        return 0;
+    }
+    // Tier 1: Data tier (databases, storage, file servers, SQL, Oracle, Mongo)
+    if (/\b(db|database|data|sql|oracle|mongo|mysql|postgres|redis|cache|storage|file.?server|nas|san)\b/.test(combined)) {
+        return 1;
+    }
+    // Tier 2: Application / middleware (app servers, API, message queues)
+    if (/\b(app|api|middleware|mq|rabbit|kafka|queue|service|backend|logic|worker)\b/.test(combined)) {
+        return 2;
+    }
+    // Tier 3: Web / frontend (web servers, load balancers, reverse proxies)
+    if (/\b(web|frontend|front|www|nginx|apache|iis|lb|load.?bal|proxy|gateway|cdn)\b/.test(combined)) {
+        return 3;
+    }
+    // Tier 4: Monitoring / management (monitoring, logging, SIEM)
+    if (/\b(monitor|log|siem|grafana|prometheus|nagios|zabbix|splunk|mgmt|manage)\b/.test(combined)) {
+        return 4;
+    }
+    // Tier 9: Unknown / ungrouped
+    return 9;
 }
 
 /**

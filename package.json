@@ -94,6 +94,47 @@
       ]
     }
   },
+  "configuration": {
+    "title": "AVS Migration Planner",
+    "properties": {
+      "avsMigrationPlanner.wave.maxVMsPerWave": {
+        "type": "number",
+        "default": 25,
+        "minimum": 1,
+        "maximum": 100,
+        "description": "Maximum number of VMs per migration wave."
+      },
+      "avsMigrationPlanner.wave.maxVCPUsPerWave": {
+        "type": "number",
+        "default": 200,
+        "minimum": 1,
+        "description": "Maximum vCPUs per migration wave."
+      },
+      "avsMigrationPlanner.wave.maxStoragePerWaveGB": {
+        "type": "number",
+        "default": 5000,
+        "minimum": 100,
+        "description": "Maximum storage (GB) per migration wave."
+      },
+      "avsMigrationPlanner.wave.daysBetweenWaves": {
+        "type": "number",
+        "default": 3,
+        "minimum": 0,
+        "description": "Days between migration wave start dates."
+      },
+      "avsMigrationPlanner.wave.throughputGBPerHour": {
+        "type": "number",
+        "default": 100,
+        "minimum": 10,
+        "description": "Aggregate HCX throughput in GB/hr (100 for 1Gbps ER, 500-800 for 10Gbps ER)."
+      },
+      "avsMigrationPlanner.pricing.region": {
+        "type": "string",
+        "default": "eastus",
+        "description": "Azure region for pricing lookup (e.g., eastus, westeurope)."
+      }
+    }
+  },
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "webpack",

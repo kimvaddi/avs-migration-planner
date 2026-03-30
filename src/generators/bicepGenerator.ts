@@ -18,6 +18,10 @@ export interface BicepTemplateParams {
     expressRouteAuthKey?: string;
     /** On-premises ExpressRoute circuit ID (optional) */
     onPremExpressRouteId?: string;
+    /** Base CIDR for NSX-T segments (e.g., '10.100.0.0/16'). Auto-generates /24 subnets. */
+    nsxtBaseCIDR?: string;
+    /** Enable internet on the AVS private cloud */
+    internetEnabled?: boolean;
 }
 
 /**
@@ -35,10 +39,15 @@ export function generateBicepTemplate(params: BicepTemplateParams): string {
     const nodeType = recommendation.nodeType.type;
     const clusterSize = recommendation.nodesPerCluster[0] || 3;
 
+    // Parse base CIDR for NSX-T segments, default to 10.100.0.0/16
+    const baseParts = parseBaseCIDR(params.nsxtBaseCIDR || '10.100.0.0/16');
+    const internetSetting = params.internetEnabled ? 'Enabled' : 'Disabled';
+
     const segments = networkExtensions.map((ext, idx) => {
         const segmentName = `segment-${sanitizeBicepName(ext.sourceNetwork)}`;
-        const gatewayAddress = `10.${100 + idx}.1.1/24`;
-        const dhcpRange = `10.${100 + idx}.1.100-10.${100 + idx}.1.200`;
+        const octet3 = baseParts.thirdOctetStart + idx;
+        const gatewayAddress = `${baseParts.prefix}.${octet3}.1/24`;
+        const dhcpRange = `${baseParts.prefix}.${octet3}.100-${baseParts.prefix}.${octet3}.200`;
         return { segmentName, sourceNetwork: ext.sourceNetwork, gatewayAddress, dhcpRange, idx };
     });
 
@@ -95,7 +104,7 @@ export function generateBicepTemplate(params: BicepTemplateParams): string {
     lines.push(`    managementCluster: {`);
     lines.push(`      clusterSize: clusterSize`);
     lines.push(`    }`);
-    lines.push(`    internet: 'Disabled'`);
+    lines.push(`    internet: '${internetSetting}'`);
     lines.push(`  }`);
     lines.push(`}`);
     lines.push(``);
@@ -144,6 +153,9 @@ export function generateBicepTemplate(params: BicepTemplateParams): string {
     // NSX-T Segments
     if (segments.length > 0) {
         lines.push(`// --- NSX-T Workload Segments ---`);
+        lines.push(`// WARNING: Subnet CIDRs below are auto-generated from base ${params.nsxtBaseCIDR || '10.100.0.0/16'}.`);
+        lines.push(`// Verify these do NOT overlap with your on-premises networks before deploying.`);
+        lines.push(`// Modify the gateway addresses and DHCP ranges to match your network plan.`);
         for (const seg of segments) {
             const resourceName = `segment_${seg.idx}`;
             lines.push(`resource ${resourceName} 'Microsoft.AVS/privateClouds/workloadNetworks/segments@2023-09-01' = {`);
@@ -193,6 +205,17 @@ function sanitizeBicepName(name: string): string {
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
         .substring(0, 50);
+}
+
+/**
+ * Parse a base CIDR (e.g., '10.100.0.0/16') into components for generating /24 subnets.
+ */
+function parseBaseCIDR(cidr: string): { prefix: string; thirdOctetStart: number } {
+    const match = cidr.match(/^(\d+\.\d+)\.(\d+)\.\d+/);
+    if (match) {
+        return { prefix: match[1], thirdOctetStart: parseInt(match[2], 10) || 0 };
+    }
+    return { prefix: '10.100', thirdOctetStart: 0 };
 }
 
 /**

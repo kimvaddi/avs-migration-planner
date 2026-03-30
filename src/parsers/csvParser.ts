@@ -14,6 +14,7 @@ interface ColumnMapping {
     cluster: string[];
     host: string[];
     networks: string[];
+    additionalNetworks: string[];
     dependencyGroup: string[];
     notes: string[];
 }
@@ -29,6 +30,7 @@ const RVTOOLS_COLUMNS: ColumnMapping = {
     cluster: ['cluster', 'cluster name'],
     host: ['host', 'host name', 'hostname', 'esx host'],
     networks: ['network #1', 'network 1', 'network', 'primary network', 'nic 1', 'portgroup'],
+    additionalNetworks: ['network #2', 'network #3', 'network #4', 'network 2', 'network 3', 'network 4', 'nic 2', 'nic 3', 'nic 4'],
     dependencyGroup: ['dependency', 'dependency group', 'dep group', 'group', 'app group', 'application group'],
     notes: ['notes', 'annotation', 'description', 'custom notes', 'comment']
 };
@@ -44,15 +46,30 @@ const STANDARD_COLUMNS: ColumnMapping = {
     cluster: ['cluster', 'cluster_name', 'source_cluster'],
     host: ['host', 'hostname', 'esxi_host', 'host_name'],
     networks: ['network', 'networks', 'vlan', 'portgroup', 'subnet'],
+    additionalNetworks: ['network_2', 'network_3', 'network_4', 'vlan_2', 'vlan_3'],
     dependencyGroup: ['dependency_group', 'dep_group', 'app_group', 'group'],
     notes: ['notes', 'description', 'comments', 'tags']
 };
 
 /**
+ * Detect the delimiter used in a CSV string (comma or semicolon).
+ * EU locales often use semicolons as the CSV delimiter.
+ */
+export function detectDelimiter(content: string): ',' | ';' {
+    // Check only the first line (header row) for delimiter frequency
+    const firstLine = content.split(/[\r\n]/)[0] || '';
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semicolonCount = (firstLine.match(/;/g) || []).length;
+    return semicolonCount > commaCount ? ';' : ',';
+}
+
+/**
  * Parse a CSV string into an array of string arrays.
- * Handles quoted fields with commas and newlines.
+ * Handles quoted fields with commas/semicolons and newlines.
+ * Auto-detects comma vs semicolon delimiter.
  */
 export function parseCSVLines(content: string): string[][] {
+    const delimiter = detectDelimiter(content);
     const rows: string[][] = [];
     let currentRow: string[] = [];
     let currentField = '';
@@ -77,7 +94,7 @@ export function parseCSVLines(content: string): string[][] {
         } else {
             if (char === '"') {
                 inQuotes = true;
-            } else if (char === ',') {
+            } else if (char === delimiter) {
                 currentRow.push(currentField.trim());
                 currentField = '';
             } else if (char === '\n') {
@@ -236,6 +253,18 @@ export function parseVMInventory(csvContent: string): ParseResult {
     const depIdx = findColumnIndex(headers, mapping.dependencyGroup);
     const notesIdx = findColumnIndex(headers, mapping.notes);
 
+    // Find additional network columns (Network #2, #3, #4 for RVTools)
+    const additionalNetIdxs: number[] = [];
+    if (mapping.additionalNetworks) {
+        const lowerHeaders = headers.map(h => h.toLowerCase().trim());
+        for (const colName of mapping.additionalNetworks) {
+            const idx = lowerHeaders.indexOf(colName);
+            if (idx !== -1 && !additionalNetIdxs.includes(idx)) {
+                additionalNetIdxs.push(idx);
+            }
+        }
+    }
+
     if (nameIdx === -1) {
         errors.push('Required column "Name/VM" not found in CSV headers');
     }
@@ -294,6 +323,16 @@ export function parseVMInventory(csvContent: string): ParseResult {
 
         const networkStr = netIdx !== -1 && netIdx < row.length ? row[netIdx] : '';
         const networks = networkStr ? networkStr.split(/[;|]/).map(n => n.trim()).filter(n => n.length > 0) : [];
+
+        // Parse additional network columns (Network #2, #3, #4)
+        for (const addNetIdx of additionalNetIdxs) {
+            if (addNetIdx < row.length) {
+                const addNet = row[addNetIdx].trim();
+                if (addNet.length > 0 && !networks.includes(addNet)) {
+                    networks.push(addNet);
+                }
+            }
+        }
 
         const vm: VMInventoryItem = {
             name: name.trim(),

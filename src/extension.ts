@@ -29,10 +29,21 @@ let currentHCXConfig: HCXConfiguration | undefined;
 export function activate(context: vscode.ExtensionContext) {
     console.log('AVS Migration Planner is now active');
 
+    // Restore state from previous session
+    restoreState(context);
+
     // Tree providers
     const vmTreeProvider = new VMInventoryTreeProvider();
     const recTreeProvider = new RecommendationsTreeProvider();
     const dashboardProvider = new DashboardProvider(context.extensionUri);
+
+    // Populate tree views if state was restored
+    if (currentVMs.length > 0) {
+        vmTreeProvider.setVMs(currentVMs);
+        if (currentSizing && currentCosts && currentWavePlan) {
+            updateRecommendationsTree(recTreeProvider);
+        }
+    }
 
     vscode.window.registerTreeDataProvider('avsMigrationPlanner.vmInventory', vmTreeProvider);
     vscode.window.registerTreeDataProvider('avsMigrationPlanner.recommendations', recTreeProvider);
@@ -80,12 +91,14 @@ export function activate(context: vscode.ExtensionContext) {
         const requirements = calculateRequirements(currentSummary);
 
         // Fetch live pricing from Azure Retail Prices API
+        const config = vscode.workspace.getConfiguration('avsMigrationPlanner');
+        const pricingRegion = config.get<string>('pricing.region', 'eastus');
         let pricingSource = 'fallback estimates';
         try {
             await vscode.window.withProgress(
                 { location: vscode.ProgressLocation.Notification, title: 'Fetching live AVS pricing...' },
                 async () => {
-                    currentPricing = await fetchAVSPricing('eastus');
+                    currentPricing = await fetchAVSPricing(pricingRegion);
                     if (currentPricing.source === 'live-api') {
                         updateNodePricing(currentPricing.nodes);
                         pricingSource = `live API (${currentPricing.region})`;
@@ -102,7 +115,15 @@ export function activate(context: vscode.ExtensionContext) {
             requirements.requiredStorageGB
         );
         currentCosts = calculateAllCosts(currentSizing.recommendations);
-        currentWavePlan = generateWavePlan(currentVMs);
+
+        // Read wave planner settings from VS Code configuration
+        currentWavePlan = generateWavePlan(currentVMs, {
+            maxVMsPerWave: config.get<number>('wave.maxVMsPerWave', 25),
+            maxVCPUsPerWave: config.get<number>('wave.maxVCPUsPerWave', 200),
+            maxStoragePerWaveGB: config.get<number>('wave.maxStoragePerWaveGB', 5000),
+            daysBetweenWaves: config.get<number>('wave.daysBetweenWaves', 3),
+            waveThroughputGBPerHour: config.get<number>('wave.throughputGBPerHour', 100)
+        });
         currentHCXConfig = generateHCXConfiguration(currentWavePlan.waves);
 
         // Update tree views
@@ -114,6 +135,9 @@ export function activate(context: vscode.ExtensionContext) {
             `Best fit: ${currentSizing.bestFit.nodeType.displayName} × ${currentSizing.bestFit.nodesRequired} nodes. ` +
             `Pricing: ${pricingSource}.`
         );
+
+        // Persist state for session restoration
+        saveState(context);
     });
 
     // --- Show Dashboard command ---
@@ -165,6 +189,16 @@ export function activate(context: vscode.ExtensionContext) {
             });
         }
 
+        const enableInternet = await vscode.window.showQuickPick(['Disabled', 'Enabled'], {
+            placeHolder: 'Enable internet access on AVS private cloud?'
+        });
+
+        const nsxtCidr = await vscode.window.showInputBox({
+            prompt: 'Base CIDR for NSX-T workload segments (/24 subnets auto-generated)',
+            value: '10.100.0.0/16',
+            placeHolder: 'e.g., 10.100.0.0/16 or 172.16.0.0/16'
+        });
+
         const params: BicepTemplateParams = {
             location,
             privateCloudName: cloudName,
@@ -172,7 +206,9 @@ export function activate(context: vscode.ExtensionContext) {
             managementCIDR: cidr,
             recommendation: currentSizing.bestFit,
             networkExtensions: currentWavePlan.networkExtensions,
-            onPremExpressRouteId: onPremErId
+            onPremExpressRouteId: onPremErId,
+            nsxtBaseCIDR: nsxtCidr || '10.100.0.0/16',
+            internetEnabled: enableInternet === 'Enabled'
         };
 
         const bicepContent = generateBicepTemplate(params);
@@ -393,6 +429,44 @@ function getOutputFolder(): string {
         return workspaceFolders[0].uri.fsPath;
     }
     return process.env.USERPROFILE || process.env.HOME || '';
+}
+
+/**
+ * Save current state to workspace storage for session restoration.
+ */
+function saveState(context: vscode.ExtensionContext): void {
+    try {
+        if (currentVMs.length > 0) {
+            context.workspaceState.update('avs.vms', currentVMs);
+            context.workspaceState.update('avs.summary', currentSummary);
+            context.workspaceState.update('avs.sizing', currentSizing);
+            context.workspaceState.update('avs.costs', currentCosts);
+            context.workspaceState.update('avs.wavePlan', currentWavePlan);
+            context.workspaceState.update('avs.hcxConfig', currentHCXConfig);
+        }
+    } catch {
+        // Silently fail — state persistence is best-effort
+    }
+}
+
+/**
+ * Restore state from workspace storage.
+ */
+function restoreState(context: vscode.ExtensionContext): void {
+    try {
+        const vms = context.workspaceState.get<VMInventoryItem[]>('avs.vms');
+        if (vms && vms.length > 0) {
+            currentVMs = vms;
+            currentSummary = context.workspaceState.get('avs.summary');
+            currentSizing = context.workspaceState.get('avs.sizing');
+            currentCosts = context.workspaceState.get('avs.costs') || [];
+            currentWavePlan = context.workspaceState.get('avs.wavePlan');
+            currentHCXConfig = context.workspaceState.get('avs.hcxConfig');
+            console.log(`AVS Migration Planner: Restored ${currentVMs.length} VMs from previous session`);
+        }
+    } catch {
+        // Silently fail — start fresh
+    }
 }
 
 export function deactivate() {}
