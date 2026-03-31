@@ -37,7 +37,7 @@ Import a VMware VM inventory → get node sizing across 5 SKUs (AV36/AV36P/AV52/
 
 **From VSIX (manual):**
 ```bash
-code --install-extension avs-migration-planner-1.1.0.vsix
+code --install-extension avs-migration-planner-1.3.0.vsix
 ```
 
 ### Step 2: Import Your VM Inventory
