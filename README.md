@@ -152,6 +152,20 @@ A full-page HTML dashboard with:
 - Migration wave timeline with per-wave VM lists and risk badges
 - Network extension summary
 
+### 9. Excel Report Export (.xlsx)
+Generates a professional, multi-sheet Excel workbook ready for stakeholder delivery:
+
+| Sheet | Content |
+|-------|--------|
+| **Input Fields** | Sizing config (overcommit, FTT, dedup, slack), workload summary, required resources |
+| **Node Sizing** | All 5 node types with utilization %, fit score, driving dimension, cluster layout. Best fit highlighted in green. |
+| **Pricing & Cost** | PAYG / 1yr RI / 3yr RI per node type. Currency-formatted with savings %. |
+| **VM Inventory** | Full VM list with auto-filter, SQL/DB detection, power-state color coding. |
+| **Wave Plan** | Every VM mapped to its migration wave with risk levels, day offsets, durations. |
+| **SKU Reference** | Hardware specs for all 5 AVS node types with pricing. |
+
+Uses the `exceljs` library. Command: `AVS: Export Excel Report (.xlsx)`.
+
 ## All Commands
 
 | Command | Description |
@@ -162,6 +176,7 @@ A full-page HTML dashboard with:
 | `AVS: Generate HCX Configuration` | Export HCX config as JSON or text |
 | `AVS: Generate Migration Wave Plan` | Export waves as CSV (Excel) or text |
 | `AVS: Export Full Migration Report` | Everything in one Markdown/text file |
+| `AVS: Export Excel Report (.xlsx)` | Professional 6-sheet Excel workbook |
 
 ## Settings
 
@@ -227,6 +242,7 @@ Use `getAvailableNodeTypes(region)` to check which node types are available in y
 ## Release Notes
 
 ### 1.1.0
+- **Excel report export** — Professional 6-sheet `.xlsx` workbook (Input Fields, Node Sizing, Pricing & Cost, VM Inventory, Wave Plan, SKU Reference) with formatting, auto-filter, and color coding
 - **Sizing engine overhaul** — vSAN storage formula with configurable FTT policy, dedup/compression, and slack space (replaces flat 35% multiplier)
 - **CPU overcommit ratios** — configurable 4:1 (production) or 8:1 (dev/test) instead of HT-based calculation
 - **Memory overcommit** — configurable ratio with explicit vSphere 10% overhead
@@ -241,7 +257,7 @@ Use `getAvailableNodeTypes(region)` to check which node types are available in y
 - **ARM region mapping** — bidirectional ARM-to-display region name lookup
 - **SizingConfig interface** — all sizing parameters configurable (overcommit, dedup, FTT, slack, HA)
 - Disk-level specs (count, size) added to all node types
-- 162 unit tests (was 130)
+- 178 unit tests (was 130)
 
 ### 1.0.0
 - RVTools and standard CSV import with auto-detection and EU semicolon support

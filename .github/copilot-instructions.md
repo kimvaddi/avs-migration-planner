@@ -8,7 +8,7 @@ VS Code extension that converts VMware VM inventories (RVTools/Standard CSV) int
 npm run compile        # Dev build (webpack → dist/extension.js)
 npm run watch          # Continuous dev compilation
 npm run package        # Production build (minified, hidden source maps)
-npm test               # 162 Mocha unit tests (ts-node, no pre-compile needed)
+npm test               # 178 Mocha unit tests (ts-node, no pre-compile needed)
 npm run compile-tests  # Compile tests to /out/ for debugger
 npm run lint           # ESLint
 ```
@@ -30,7 +30,7 @@ CSV → parsers/ → models/ → analyzers/ → pricing/ → calculators/ → ge
 | Analyzers | `src/analyzers/` | Inventory aggregation, cluster sizing (configurable overcommit, vSAN formula, N+1 HA) |
 | Pricing | `src/pricing/` | Azure Retail Prices API with hardcoded fallback |
 | Calculators | `src/calculators/` | PAYG / 1Y RI / 3Y RI cost estimation + multi-year TCO + Defender costs |
-| Generators | `src/generators/` | Bicep templates, HCX mobility groups, wave plans |
+| Generators | `src/generators/` | Bicep templates, HCX mobility groups, wave plans, Excel report (.xlsx) |
 | Views | `src/views/` | HTML-only dashboard webview, sidebar tree providers |
 | Chat | `src/chat/` | `@avs` Copilot Chat participant (5 slash commands) |
 
@@ -43,7 +43,7 @@ Entry point: `src/extension.ts` — handles activation, state restoration, comma
 - **State provider pattern.** Extension passes closures (getters) to chat participant, not singletons or DI.
 - **`DEFAULT_CONFIG` + Partial\<T\>.** Modules define defaults as `const`, callers override with partial objects. See `DEFAULT_SIZING_CONFIG`, `DEFAULT_TCO_CONFIG`.
 - **Floating-point guards.** Use `.toFixed(2)` before `Math.ceil()` in resource calculations to avoid IEEE 754 artifacts.
-- **Zero runtime dependencies.** Everything is self-contained; keep it that way.
+- **Zero runtime dependencies.** Everything is self-contained except `exceljs` for Excel export; keep new dependencies minimal.
 - **vSAN sizing formula.** Storage usable = `raw / FTT_overhead × (1 - slack) × dedup`. Never use a flat multiplier. See `calculateUsableStorage()` in `avsNode.ts`.
 - **CPU overcommit.** Always use `physicalCores × overcommitRatio`, not hyperthreaded cores. See `calculateUsableVCPUs()` in `avsNode.ts`.
 - **N+1 HA.** Cluster sizing adds +1 node by default. Controlled by `SizingConfig.enableHANode`.

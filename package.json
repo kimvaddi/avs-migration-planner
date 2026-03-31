@@ -60,6 +60,11 @@
       {
         "command": "avsMigrationPlanner.exportReport",
         "title": "AVS: Export Full Migration Report"
+      },
+      {
+        "command": "avsMigrationPlanner.exportExcel",
+        "title": "AVS: Export Excel Report (.xlsx)",
+        "icon": "$(file-symlink-file)"
       }
     ],
     "viewsContainers": {
@@ -191,5 +196,8 @@
     "typescript": "^5.3.3",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
   }
 }

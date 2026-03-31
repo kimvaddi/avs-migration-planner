@@ -2,6 +2,9 @@
 
 ## [1.1.0] - 2026-03-31
 
+### Excel Report Export
+- **Excel report export** — Professional 6-sheet `.xlsx` workbook with Input Fields, Node Sizing, Pricing & Cost, VM Inventory, Wave Plan, and SKU Reference. Color coded, auto-filtered, currency-formatted. Uses `exceljs`.
+
 ### Sizing Engine Overhaul
 - **vSAN storage formula** — Replaced flat 35% usable multiplier with proper calculation: `raw / FTT_overhead × (1 - vSAN_slack) × dedup_ratio`. Aligns with AVS License Calculator v4.04.
 - **CPU overcommit ratios** — Configurable 4:1 (production default) or 8:1 (dev/test). Replaces HT-based calculation.
@@ -28,9 +31,10 @@
 - **`getAvailableNodeTypes(region)`** — Returns which node SKUs are available in a given region.
 
 ### Technical
-- 162 unit tests across 8 test suites (was 130 across 7)
-- New module: `src/models/regionAvailability.ts`
-- New test suite: `src/test/unit/regionAvailability.test.ts`
+- 178 unit tests across 9 test suites (was 162 across 8)
+- New module: `src/generators/excelGenerator.ts`
+- New test suite: `src/test/unit/excelGenerator.test.ts`
+- Added `exceljs` as runtime dependency for Excel export
 - Sizing methodology cross-validated against AVS License Calculator v4.04 (LYB AVS)
 
 ## [1.0.0] - 2026-03-30

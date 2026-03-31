@@ -8,6 +8,7 @@ import { calculateAllCosts, generateCostSummary } from './calculators/costCalcul
 import { generateHCXConfiguration, exportHCXConfigJSON, exportHCXConfigText } from './generators/hcxGenerator';
 import { generateBicepTemplate, generateBicepParameters, BicepTemplateParams } from './generators/bicepGenerator';
 import { generateWavePlan, exportWavePlanText, exportWavePlanCSV } from './generators/wavePlanner';
+import { generateExcelReport, ExcelReportParams } from './generators/excelGenerator';
 import { VMInventoryItem } from './models/vm';
 import { InventorySummary } from './models/vm';
 import { SizingResult } from './models/avsNode';
@@ -394,7 +395,54 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    context.subscriptions.push(importCmd, dashboardCmd, bicepCmd, hcxCmd, waveCmd, exportCmd);
+    // --- Export Excel Report command ---
+    const excelCmd = vscode.commands.registerCommand('avsMigrationPlanner.exportExcel', async () => {
+        if (!currentSummary || !currentSizing || !currentWavePlan || !currentHCXConfig) {
+            vscode.window.showWarningMessage('Import a VM inventory first.');
+            return;
+        }
+
+        const config = vscode.workspace.getConfiguration('avsMigrationPlanner');
+        const region = config.get<string>('pricing.region', 'eastus');
+
+        const saveUri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(path.join(getOutputFolder(), 'AVS_Migration_Report.xlsx')),
+            filters: { 'Excel Workbook': ['xlsx'], 'All Files': ['*'] },
+            title: 'Save AVS Migration Report (Excel)'
+        });
+
+        if (!saveUri) { return; }
+
+        try {
+            await vscode.window.withProgress(
+                { location: vscode.ProgressLocation.Notification, title: 'Generating Excel report...' },
+                async () => {
+                    const excelParams: ExcelReportParams = {
+                        vms: currentVMs,
+                        summary: currentSummary!,
+                        sizing: currentSizing!,
+                        costs: currentCosts,
+                        wavePlan: currentWavePlan!,
+                        region
+                    };
+                    const buffer = await generateExcelReport(excelParams);
+                    fs.writeFileSync(saveUri.fsPath, buffer);
+                }
+            );
+            vscode.window.showInformationMessage(
+                `Excel report saved to ${path.basename(saveUri.fsPath)} (6 sheets).`,
+                'Open File'
+            ).then(choice => {
+                if (choice === 'Open File') {
+                    vscode.env.openExternal(vscode.Uri.file(saveUri.fsPath));
+                }
+            });
+        } catch (err) {
+            vscode.window.showErrorMessage(`Failed to generate Excel report: ${(err as Error).message}`);
+        }
+    });
+
+    context.subscriptions.push(importCmd, dashboardCmd, bicepCmd, hcxCmd, waveCmd, exportCmd, excelCmd);
 }
 
 function updateRecommendationsTree(provider: RecommendationsTreeProvider): void {
