@@ -1,5 +1,7 @@
 # AVS Migration Planner
 
+**Azure VMware Solution Migration Planner with AI-Assisted Analysis** for Visual Studio Code.
+
 > Turn weeks of Azure VMware Solution migration planning into minutes.
 
 Planning an AVS migration today means weeks of spreadsheets — analyzing VM inventories, mapping to node types, estimating costs, planning network extensions, and writing Bicep templates from scratch. This extension does all of that inside VS Code.

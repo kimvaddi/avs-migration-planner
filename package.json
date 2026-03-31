@@ -1,7 +1,7 @@
 {
   "name": "avs-migration-planner",
   "displayName": "AVS Migration Planner",
-  "description": "Azure VMware Solution migration planner - Import VM inventories, recommend AVS node types, calculate costs, generate HCX configs, Bicep templates, and migration wave plans.",
+  "description": "Azure VMware Solution migration planner with AI-assisted analysis — Import VM inventories, get AVS node sizing, live Azure pricing, HCX configs, Bicep templates, migration wave plans, and @avs Copilot Chat for expert insights.",
   "version": "1.0.0",
   "publisher": "KimVaddi",
   "author": {
