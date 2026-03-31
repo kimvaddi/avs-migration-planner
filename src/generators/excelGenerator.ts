@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { VMInventoryItem, InventorySummary } from '../models/vm';
 import { SizingResult, AVS_NODE_SPECS, SizingConfig } from '../models/avsNode';
 import { CostEstimate, MigrationWavePlan } from '../models/migrationPlan';
+import { generateNodeAdvisory, NodeAdvisoryReport } from '../analyzers/nodeAdvisor';
 
 /**
  * Parameters for generating the AVS Excel report.
@@ -36,6 +37,7 @@ export async function generateExcelReport(params: ExcelReportParams): Promise<Bu
 
     buildInputFieldsSheet(wb, params);
     buildSizingSheet(wb, params);
+    buildAdvisorySheet(wb, params);
     buildCostSheet(wb, params);
     buildVMInventorySheet(wb, params);
     buildWavePlanSheet(wb, params);
@@ -186,6 +188,114 @@ function buildSizingSheet(wb: ExcelJS.Workbook, params: ExcelReportParams): void
     addValueRow(ws, r++, 'Total Usable vCPUs', bestFit.totalUsableVCPUs);
     addValueRow(ws, r++, 'Total Usable RAM (GB)', bestFit.totalUsableRamGB);
     addValueRow(ws, r++, 'Total Usable Storage (TB)', bestFit.totalUsableStorageTB);
+}
+
+// ============================================================
+// Sheet: Node Selection Guide (Advisory)
+// ============================================================
+function buildAdvisorySheet(wb: ExcelJS.Workbook, params: ExcelReportParams): void {
+    const ws = wb.addWorksheet('Node Selection Guide');
+    ws.columns = [
+        { width: 5 }, { width: 22 }, { width: 16 }, { width: 55 },
+        { width: 14 }, { width: 14 }, { width: 14 }, { width: 18 },
+        { width: 30 }
+    ];
+
+    const report = generateNodeAdvisory(params.sizing.recommendations, params.region);
+
+    let r = 1;
+    ws.mergeCells(r, 2, r, 6);
+    ws.getRow(r).getCell(2).value = 'AVS Node Selection Guide — Architect Recommendation';
+    ws.getRow(r).getCell(2).font = { bold: true, size: 14, color: { argb: 'FF1F4E79' } };
+    r += 2;
+
+    const headers = ['Node Type', 'Verdict', 'Summary', '$/vCPU', '$/GB RAM', '$/TB Storage', 'Most Wasted', 'Best For'];
+    const headerRow = ws.getRow(r);
+    headers.forEach((h, i) => {
+        const cell = headerRow.getCell(i + 2);
+        cell.value = h;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE_HEADER } };
+        cell.border = thinBorder();
+        cell.alignment = { horizontal: 'center', wrapText: true };
+    });
+    r++;
+
+    for (const advice of report.recommendations) {
+        const verdictColor = advice.verdict === 'recommended' ? GREEN_FONT
+            : advice.verdict === 'not-recommended' ? RED_FONT : 'FF808080';
+        const row = ws.getRow(r);
+        const values: (string | number)[] = [
+            advice.nodeType,
+            advice.verdict.toUpperCase(),
+            advice.summary,
+            advice.costEfficiency.costPerVCPU,
+            advice.costEfficiency.costPerGBRam,
+            advice.costEfficiency.costPerTBStorage,
+            `${advice.wasteAnalysis.mostWastedResource} (${Math.max(advice.wasteAnalysis.cpuWastePercent, advice.wasteAnalysis.memoryWastePercent, advice.wasteAnalysis.storageWastePercent)}%)`,
+            advice.bestFor.join(', ')
+        ];
+        values.forEach((v, i) => {
+            const cell = row.getCell(i + 2);
+            cell.value = v;
+            cell.border = thinBorder();
+            cell.alignment = { wrapText: true, vertical: 'top' };
+            if (i >= 3 && i <= 5 && typeof v === 'number') {
+                cell.numFmt = '$#,##0.00';
+            }
+        });
+        row.getCell(3).font = { bold: true, color: { argb: verdictColor } };
+        if (advice.verdict === 'recommended') {
+            for (let c = 2; c <= 9; c++) {
+                row.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_TOTAL } };
+            }
+        }
+        r++;
+    }
+
+    // Detailed rationale
+    r += 2;
+    ws.mergeCells(r, 2, r, 6);
+    ws.getRow(r).getCell(2).value = 'Detailed Rationale';
+    ws.getRow(r).getCell(2).font = { bold: true, size: 13, color: { argb: 'FF2E75B6' } };
+    ws.getRow(r).getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE_SECTION } };
+    r++;
+
+    for (const advice of report.recommendations) {
+        r++;
+        ws.getRow(r).getCell(2).value = advice.nodeType;
+        ws.getRow(r).getCell(2).font = { bold: true, size: 12 };
+        ws.getRow(r).getCell(3).value = advice.verdict.toUpperCase();
+        ws.getRow(r).getCell(3).font = { bold: true, color: { argb: advice.verdict === 'recommended' ? GREEN_FONT : advice.verdict === 'not-recommended' ? RED_FONT : 'FF808080' } };
+        r++;
+        for (const line of advice.rationale) {
+            ws.getRow(r).getCell(2).value = '  \u2022 ' + line;
+            ws.getRow(r).getCell(2).font = { size: 10 };
+            r++;
+        }
+        for (const w of advice.warnings) {
+            ws.getRow(r).getCell(2).value = '  \u26A0 ' + w;
+            ws.getRow(r).getCell(2).font = { size: 10, color: { argb: RED_FONT } };
+            r++;
+        }
+    }
+
+    // Sources
+    r += 2;
+    ws.getRow(r).getCell(2).value = 'Sources: Microsoft Learn \u2014 Azure VMware Solution';
+    ws.getRow(r).getCell(2).font = { italic: true, size: 9, color: { argb: 'FF808080' } };
+    r++;
+    const sources = [
+        'Node specs: https://learn.microsoft.com/azure/azure-vmware/introduction',
+        'Sizing: https://learn.microsoft.com/azure/migrate/concepts-azure-vmware-solution-assessment-calculation',
+        'Storage: https://learn.microsoft.com/azure/azure-vmware/architecture-storage',
+        'Well-Architected: https://learn.microsoft.com/azure/well-architected/azure-vmware/infrastructure'
+    ];
+    for (const src of sources) {
+        ws.getRow(r).getCell(2).value = '  ' + src;
+        ws.getRow(r).getCell(2).font = { size: 9, color: { argb: 'FF808080' } };
+        r++;
+    }
 }
 
 // ============================================================

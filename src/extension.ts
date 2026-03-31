@@ -9,6 +9,7 @@ import { generateHCXConfiguration, exportHCXConfigJSON, exportHCXConfigText } fr
 import { generateBicepTemplate, generateBicepParameters, BicepTemplateParams } from './generators/bicepGenerator';
 import { generateWavePlan, exportWavePlanText, exportWavePlanCSV } from './generators/wavePlanner';
 import { generateExcelReport, ExcelReportParams } from './generators/excelGenerator';
+import { generateNodeAdvisory, formatAdvisoryText } from './analyzers/nodeAdvisor';
 import { VMInventoryItem } from './models/vm';
 import { InventorySummary } from './models/vm';
 import { SizingResult } from './models/avsNode';
@@ -374,6 +375,13 @@ export function activate(context: vscode.ExtensionContext) {
         // HCX config
         lines.push('');
         lines.push(exportHCXConfigText(currentHCXConfig));
+
+        // Node selection advisory
+        const config = vscode.workspace.getConfiguration('avsMigrationPlanner');
+        const advisoryRegion = config.get<string>('pricing.region', 'eastus');
+        const advisory = generateNodeAdvisory(currentSizing.recommendations, advisoryRegion);
+        lines.push('');
+        lines.push(formatAdvisoryText(advisory));
 
         const content = lines.join('\n');
 
