@@ -4,29 +4,57 @@ import {
     AVS_CLUSTER_MIN_NODES,
     AVS_CLUSTER_MAX_NODES,
     ClusterRecommendation,
-    SizingResult
+    SizingResult,
+    SizingConfig,
+    DEFAULT_SIZING_CONFIG,
+    calculateUsableStorage,
+    calculateUsableMemory,
+    calculateUsableVCPUs
 } from '../models/avsNode';
 
 /**
  * Calculate the number of nodes required for a given resource requirement and node type.
+ * Uses the provided SizingConfig for overcommit ratios, storage policy, etc.
+ * Returns node count plus the driving dimension.
  */
 export function calculateNodesRequired(
     requiredVCPUs: number,
     requiredMemoryGB: number,
     requiredStorageTB: number,
-    nodeSpec: AVSNodeSpec
-): number {
-    const nodesByCPU = Math.ceil(requiredVCPUs / nodeSpec.usableVCPUs);
-    const nodesByMemory = Math.ceil(requiredMemoryGB / nodeSpec.usableRamGB);
+    nodeSpec: AVSNodeSpec,
+    config: SizingConfig = DEFAULT_SIZING_CONFIG
+): { nodes: number; drivingDimension: 'CPU' | 'Memory' | 'Storage' } {
+    const usableVCPUs = calculateUsableVCPUs(nodeSpec.cpuCores, config);
+    const usableMemGB = calculateUsableMemory(nodeSpec.ramGB, config);
+    const usableStorTB = calculateUsableStorage(nodeSpec.rawStorageTB, config);
+
+    const nodesByCPU = Math.ceil(parseFloat((requiredVCPUs / usableVCPUs).toFixed(2)));
+    const nodesByMemory = Math.ceil(parseFloat((requiredMemoryGB / usableMemGB).toFixed(2)));
     const nodesByStorage = requiredStorageTB > 0
-        ? Math.ceil(requiredStorageTB / nodeSpec.usableStorageTB)
+        ? Math.ceil(parseFloat((requiredStorageTB / usableStorTB).toFixed(2)))
         : 0;
 
-    // The binding constraint is whichever dimension requires the most nodes
-    const nodesNeeded = Math.max(nodesByCPU, nodesByMemory, nodesByStorage);
+    const rawMax = Math.max(nodesByCPU, nodesByMemory, nodesByStorage);
+    let drivingDimension: 'CPU' | 'Memory' | 'Storage' = 'CPU';
+    if (rawMax === nodesByMemory && rawMax > nodesByCPU) {
+        drivingDimension = 'Memory';
+    } else if (rawMax === nodesByStorage && rawMax > nodesByCPU && rawMax > nodesByMemory) {
+        drivingDimension = 'Storage';
+    } else {
+        drivingDimension = 'CPU';
+    }
+
+    // Add N+1 HA node if enabled
+    let total = rawMax;
+    if (config.enableHANode) {
+        total = rawMax + 1;
+    }
 
     // Minimum is 3 nodes (AVS cluster minimum)
-    return Math.max(nodesNeeded, AVS_CLUSTER_MIN_NODES);
+    return {
+        nodes: Math.max(total, AVS_CLUSTER_MIN_NODES),
+        drivingDimension
+    };
 }
 
 /**
@@ -77,22 +105,28 @@ function generateRecommendation(
     requiredVCPUs: number,
     requiredMemoryGB: number,
     requiredStorageGB: number,
-    nodeSpec: AVSNodeSpec
+    nodeSpec: AVSNodeSpec,
+    config: SizingConfig
 ): ClusterRecommendation {
     const requiredStorageTB = requiredStorageGB / 1024;
 
-    const nodesRequired = calculateNodesRequired(
+    const { nodes: nodesRequired, drivingDimension } = calculateNodesRequired(
         requiredVCPUs,
         requiredMemoryGB,
         requiredStorageTB,
-        nodeSpec
+        nodeSpec,
+        config
     );
 
     const nodesPerCluster = distributeNodesToClusters(nodesRequired);
 
-    const totalUsableVCPUs = nodesRequired * nodeSpec.usableVCPUs;
-    const totalUsableRamGB = nodesRequired * nodeSpec.usableRamGB;
-    const totalUsableStorageTB = nodesRequired * nodeSpec.usableStorageTB;
+    const usableVCPUsPerNode = calculateUsableVCPUs(nodeSpec.cpuCores, config);
+    const usableMemPerNode = calculateUsableMemory(nodeSpec.ramGB, config);
+    const usableStorPerNode = calculateUsableStorage(nodeSpec.rawStorageTB, config);
+
+    const totalUsableVCPUs = nodesRequired * usableVCPUsPerNode;
+    const totalUsableRamGB = parseFloat((nodesRequired * usableMemPerNode).toFixed(2));
+    const totalUsableStorageTB = parseFloat((nodesRequired * usableStorPerNode).toFixed(2));
 
     const utilizationCpu = totalUsableVCPUs > 0
         ? Math.round((requiredVCPUs / totalUsableVCPUs) * 100)
@@ -122,7 +156,9 @@ function generateRecommendation(
         utilizationCpu,
         utilizationMemory,
         utilizationStorage,
-        fitScore
+        fitScore,
+        drivingDimension,
+        includesHANode: config.enableHANode
     };
 }
 
@@ -150,14 +186,16 @@ function scoreUtilization(utilization: number): number {
 /**
  * Generate sizing recommendations for all AVS node types.
  * Returns sorted recommendations with best fit first.
+ * Accepts optional SizingConfig for overcommit/storage parameters.
  */
 export function generateSizingRecommendations(
     requiredVCPUs: number,
     requiredMemoryGB: number,
-    requiredStorageGB: number
+    requiredStorageGB: number,
+    config: SizingConfig = DEFAULT_SIZING_CONFIG
 ): SizingResult {
     const recommendations: ClusterRecommendation[] = AVS_NODE_SPECS.map(spec =>
-        generateRecommendation(requiredVCPUs, requiredMemoryGB, requiredStorageGB, spec)
+        generateRecommendation(requiredVCPUs, requiredMemoryGB, requiredStorageGB, spec, config)
     );
 
     // Sort by fit score descending, then by node count ascending (prefer fewer nodes)
@@ -170,6 +208,7 @@ export function generateSizingRecommendations(
         requiredVCPUs,
         requiredMemoryGB,
         requiredStorageGB,
+        sizingConfig: config,
         recommendations,
         bestFit: recommendations[0]
     };

@@ -61,94 +61,99 @@ export function activate(context: vscode.ExtensionContext) {
 
     // --- Import VM Inventory command ---
     const importCmd = vscode.commands.registerCommand('avsMigrationPlanner.importInventory', async () => {
-        const fileUris = await vscode.window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectMany: false,
-            filters: { 'CSV Files': ['csv'], 'All Files': ['*'] },
-            title: 'Select VM Inventory CSV (RVTools or Standard format)'
-        });
-
-        if (!fileUris || fileUris.length === 0) {return;}
-
-        const filePath = fileUris[0].fsPath;
-        let csvContent: string;
         try {
-            csvContent = fs.readFileSync(filePath, 'utf-8');
-        } catch (err) {
-            vscode.window.showErrorMessage(`Failed to read file: ${(err as Error).message}`);
-            return;
-        }
+            const fileUris = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectMany: false,
+                filters: { 'CSV Files': ['csv'], 'All Files': ['*'] },
+                title: 'Select VM Inventory CSV (RVTools or Standard format)'
+            });
 
-        const parseResult = parseVMInventory(csvContent);
+            if (!fileUris || fileUris.length === 0) {return;}
 
-        if (!parseResult.success) {
-            vscode.window.showErrorMessage(`CSV parsing failed:\n${parseResult.errors.join('\n')}`);
-            return;
-        }
+            const filePath = fileUris[0].fsPath;
+            let csvContent: string;
+            try {
+                csvContent = fs.readFileSync(filePath, 'utf-8');
+            } catch (err) {
+                vscode.window.showErrorMessage(`Failed to read file: ${(err as Error).message}`);
+                return;
+            }
 
-        if (parseResult.warnings.length > 0) {
-            const warnCount = parseResult.warnings.length;
-            vscode.window.showWarningMessage(
-                `Imported with ${warnCount} warning(s). Check Output for details.`
-            );
-            const outputChannel = vscode.window.createOutputChannel('AVS Migration Planner');
-            outputChannel.appendLine('=== Import Warnings ===');
-            parseResult.warnings.forEach(w => outputChannel.appendLine(w));
-            outputChannel.show(true);
-        }
+            const parseResult = parseVMInventory(csvContent);
 
-        currentVMs = parseResult.vms;
-        currentSummary = analyzeInventory(currentVMs);
-        const requirements = calculateRequirements(currentSummary);
+            if (!parseResult.success) {
+                vscode.window.showErrorMessage(`CSV parsing failed:\n${parseResult.errors.join('\n')}`);
+                return;
+            }
 
-        // Fetch live pricing from Azure Retail Prices API
-        const config = vscode.workspace.getConfiguration('avsMigrationPlanner');
-        const pricingRegion = config.get<string>('pricing.region', 'eastus');
-        let pricingSource = 'fallback estimates';
-        try {
-            await vscode.window.withProgress(
-                { location: vscode.ProgressLocation.Notification, title: 'Fetching live AVS pricing...' },
-                async () => {
-                    currentPricing = await fetchAVSPricing(pricingRegion);
-                    if (currentPricing.source === 'live-api') {
-                        updateNodePricing(currentPricing.nodes);
-                        pricingSource = `live API (${currentPricing.region})`;
+            if (parseResult.warnings.length > 0) {
+                const warnCount = parseResult.warnings.length;
+                vscode.window.showWarningMessage(
+                    `Imported with ${warnCount} warning(s). Check Output for details.`
+                );
+                const outputChannel = vscode.window.createOutputChannel('AVS Migration Planner');
+                outputChannel.appendLine('=== Import Warnings ===');
+                parseResult.warnings.forEach(w => outputChannel.appendLine(w));
+                outputChannel.show(true);
+            }
+
+            currentVMs = parseResult.vms;
+            currentSummary = analyzeInventory(currentVMs);
+            const requirements = calculateRequirements(currentSummary);
+
+            // Fetch live pricing from Azure Retail Prices API
+            const config = vscode.workspace.getConfiguration('avsMigrationPlanner');
+            const pricingRegion = config.get<string>('pricing.region', 'eastus');
+            let pricingSource = 'fallback estimates';
+            try {
+                await vscode.window.withProgress(
+                    { location: vscode.ProgressLocation.Notification, title: 'Fetching live AVS pricing...' },
+                    async () => {
+                        currentPricing = await fetchAVSPricing(pricingRegion);
+                        if (currentPricing.source === 'live-api') {
+                            updateNodePricing(currentPricing.nodes);
+                            pricingSource = `live API (${currentPricing.region})`;
+                        }
                     }
-                }
+                );
+            } catch {
+                pricingSource = 'fallback estimates (API unavailable)';
+            }
+
+            currentSizing = generateSizingRecommendations(
+                requirements.requiredVCPUs,
+                requirements.requiredMemoryGB,
+                requirements.requiredStorageGB
             );
-        } catch {
-            pricingSource = 'fallback estimates (API unavailable)';
+            currentCosts = calculateAllCosts(currentSizing.recommendations);
+
+            // Read wave planner settings from VS Code configuration
+            currentWavePlan = generateWavePlan(currentVMs, {
+                maxVMsPerWave: config.get<number>('wave.maxVMsPerWave', 25),
+                maxVCPUsPerWave: config.get<number>('wave.maxVCPUsPerWave', 200),
+                maxStoragePerWaveGB: config.get<number>('wave.maxStoragePerWaveGB', 5000),
+                daysBetweenWaves: config.get<number>('wave.daysBetweenWaves', 3),
+                waveThroughputGBPerHour: config.get<number>('wave.throughputGBPerHour', 100)
+            });
+            currentHCXConfig = generateHCXConfiguration(currentWavePlan.waves);
+
+            // Update tree views
+            vmTreeProvider.setVMs(currentVMs);
+            updateRecommendationsTree(recTreeProvider);
+
+            vscode.window.showInformationMessage(
+                `Imported ${parseResult.vms.length} VMs (${parseResult.format} format). ` +
+                `Best fit: ${currentSizing.bestFit.nodeType.displayName} × ${currentSizing.bestFit.nodesRequired} nodes. ` +
+                `Pricing: ${pricingSource}.`
+            );
+
+            // Persist state for session restoration
+            saveState(context);
+        } catch (err) {
+            vscode.window.showErrorMessage(`AVS Migration Planner error: ${(err as Error).message}`);
+            console.error('AVS Migration Planner import error:', err);
         }
-
-        currentSizing = generateSizingRecommendations(
-            requirements.requiredVCPUs,
-            requirements.requiredMemoryGB,
-            requirements.requiredStorageGB
-        );
-        currentCosts = calculateAllCosts(currentSizing.recommendations);
-
-        // Read wave planner settings from VS Code configuration
-        currentWavePlan = generateWavePlan(currentVMs, {
-            maxVMsPerWave: config.get<number>('wave.maxVMsPerWave', 25),
-            maxVCPUsPerWave: config.get<number>('wave.maxVCPUsPerWave', 200),
-            maxStoragePerWaveGB: config.get<number>('wave.maxStoragePerWaveGB', 5000),
-            daysBetweenWaves: config.get<number>('wave.daysBetweenWaves', 3),
-            waveThroughputGBPerHour: config.get<number>('wave.throughputGBPerHour', 100)
-        });
-        currentHCXConfig = generateHCXConfiguration(currentWavePlan.waves);
-
-        // Update tree views
-        vmTreeProvider.setVMs(currentVMs);
-        updateRecommendationsTree(recTreeProvider);
-
-        vscode.window.showInformationMessage(
-            `Imported ${parseResult.vms.length} VMs (${parseResult.format} format). ` +
-            `Best fit: ${currentSizing.bestFit.nodeType.displayName} × ${currentSizing.bestFit.nodesRequired} nodes. ` +
-            `Pricing: ${pricingSource}.`
-        );
-
-        // Persist state for session restoration
-        saveState(context);
     });
 
     // --- Show Dashboard command ---

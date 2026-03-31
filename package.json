@@ -30,8 +30,7 @@
     "cloud"
   ],
   "activationEvents": [
-    "onView:avsMigrationPlanner.vmInventory",
-    "onView:avsMigrationPlanner.recommendations"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {

@@ -52,15 +52,20 @@ const STANDARD_COLUMNS: ColumnMapping = {
 };
 
 /**
- * Detect the delimiter used in a CSV string (comma or semicolon).
- * EU locales often use semicolons as the CSV delimiter.
+ * Detect the delimiter used in a CSV string (comma, semicolon, or tab).
+ * EU locales often use semicolons. RVTools can export tab-separated.
  */
-export function detectDelimiter(content: string): ',' | ';' {
+export function detectDelimiter(content: string): ',' | ';' | '\t' {
     // Check only the first line (header row) for delimiter frequency
     const firstLine = content.split(/[\r\n]/)[0] || '';
     const commaCount = (firstLine.match(/,/g) || []).length;
     const semicolonCount = (firstLine.match(/;/g) || []).length;
-    return semicolonCount > commaCount ? ';' : ',';
+    const tabCount = (firstLine.match(/\t/g) || []).length;
+    
+    // Tab-separated takes priority if tabs are present (RVTools xlsx export)
+    if (tabCount > commaCount && tabCount > semicolonCount) {return '\t';}
+    if (semicolonCount > commaCount) {return ';';}
+    return ',';
 }
 
 /**
@@ -220,7 +225,13 @@ export function parseVMInventory(csvContent: string): ParseResult {
         return { success: false, vms: [], errors: ['CSV content is empty'], warnings: [], format: 'unknown' };
     }
 
-    const rows = parseCSVLines(csvContent);
+    // Strip UTF-8 BOM if present (common in RVTools exports)
+    let cleaned = csvContent;
+    if (cleaned.charCodeAt(0) === 0xFEFF) {
+        cleaned = cleaned.substring(1);
+    }
+
+    const rows = parseCSVLines(cleaned);
 
     if (rows.length < 2) {
         return { success: false, vms: [], errors: ['CSV must have a header row and at least one data row'], warnings: [], format: 'unknown' };
@@ -232,7 +243,7 @@ export function parseVMInventory(csvContent: string): ParseResult {
     if (format === 'unknown') {
         return {
             success: false, vms: [], format: 'unknown',
-            errors: ['Unable to detect CSV format. Expected RVTools or standard columns (name, vCPUs/CPUs, memory, storage).'],
+            errors: [`Unable to detect CSV format. Found headers: [${headers.slice(0, 10).join(', ')}]. Expected RVTools columns (VM, CPUs, Memory MB) or standard columns (name, vcpus, memory_gb).`],
             warnings: []
         };
     }
@@ -284,12 +295,16 @@ export function parseVMInventory(csvContent: string): ParseResult {
     }
 
     // Detect if memory is in MB (RVTools) or GB
+    // RVTools always exports memory in MB. If header says "MB" OR if it's rvtools format, check values.
     const isMemoryMB = format === 'rvtools' &&
         headers[memIdx] && headers[memIdx].toLowerCase().includes('mb');
+    // Also detect by value: if average memory > 1000, it's almost certainly MB
+    const needsMemoryAutoDetect = format === 'rvtools' && !isMemoryMB;
 
     // Detect if storage is in MB
     const isStorageMB = storageIdx !== -1 && format === 'rvtools' &&
         headers[storageIdx] && (headers[storageIdx].toLowerCase().includes('mb') || headers[storageIdx].toLowerCase().includes('mib'));
+    const needsStorageAutoDetect = format === 'rvtools' && storageIdx !== -1 && !isStorageMB;
 
     // Parse data rows
     for (let i = 1; i < rows.length; i++) {
@@ -306,10 +321,21 @@ export function parseVMInventory(csvContent: string): ParseResult {
         let storageGB = storageIdx !== -1 && storageIdx < row.length ? parseNumeric(row[storageIdx]) : 0;
 
         // Convert MB to GB if needed
+        // Method 1: Header explicitly says "MB"
         if (isMemoryMB && memoryGB > 100) {
             memoryGB = Math.round(memoryGB / 1024 * 100) / 100;
         }
         if (isStorageMB && storageGB > 1000) {
+            storageGB = Math.round(storageGB / 1024 * 100) / 100;
+        }
+
+        // Method 2: Auto-detect by value range (RVTools always exports in MB)
+        // A VM with 65536 "GB" of memory doesn't exist — that's 65536 MB = 64 GB
+        if (needsMemoryAutoDetect && memoryGB > 512) {
+            memoryGB = Math.round(memoryGB / 1024 * 100) / 100;
+        }
+        if (needsStorageAutoDetect && storageGB > 100000) {
+            // Storage values > 100 TB are almost certainly in MB
             storageGB = Math.round(storageGB / 1024 * 100) / 100;
         }
 

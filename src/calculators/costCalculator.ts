@@ -1,5 +1,5 @@
 import { ClusterRecommendation } from '../models/avsNode';
-import { CostEstimate } from '../models/migrationPlan';
+import { CostEstimate, TCOConfig, DEFAULT_TCO_CONFIG, TCOEstimate, YearlyCostBreakdown } from '../models/migrationPlan';
 
 /**
  * Calculate cost estimates for a cluster recommendation.
@@ -80,4 +80,77 @@ export function generateCostSummary(costs: CostEstimate[]): string {
 
     lines.push('Note: Pricing is approximate (US East reference). Verify with Azure Pricing Calculator.');
     return lines.join('\n');
+}
+
+/**
+ * Calculate multi-year TCO estimate for a cluster recommendation.
+ * Includes AVS node costs (3yr RI as baseline) and optional Defender costs.
+ */
+export function calculateTCO(
+    recommendation: ClusterRecommendation,
+    config: TCOConfig = DEFAULT_TCO_CONFIG
+): TCOEstimate {
+    const nodeSpec = recommendation.nodeType;
+    const nodeCount = recommendation.nodesRequired;
+
+    // Apply custom RI discount if provided, otherwise use standard 3yr RI
+    let monthlyPerNode: number;
+    if (config.riDiscount > 0) {
+        monthlyPerNode = nodeSpec.payAsYouGoMonthly * (1 - config.riDiscount);
+    } else {
+        monthlyPerNode = nodeSpec.ri3YearMonthly;
+    }
+    const monthlyAVSCost = parseFloat((nodeCount * monthlyPerNode).toFixed(2));
+
+    // Defender costs
+    const monthlyDefenderServers = config.includeDefender
+        ? parseFloat((config.totalVMCount * config.defenderServerP2Monthly).toFixed(2))
+        : 0;
+    const monthlyDefenderSql = config.includeDefender
+        ? parseFloat((config.sqlVMCount * config.defenderSqlMonthly).toFixed(2))
+        : 0;
+
+    const monthlyTotal = parseFloat((monthlyAVSCost + monthlyDefenderServers + monthlyDefenderSql).toFixed(2));
+
+    // Build yearly breakdown
+    const yearlyBreakdown: YearlyCostBreakdown[] = [];
+    for (let yr = 1; yr <= config.years; yr++) {
+        const avsCost = parseFloat((monthlyAVSCost * 12).toFixed(2));
+        const defSrv = parseFloat((monthlyDefenderServers * 12).toFixed(2));
+        const defSql = parseFloat((monthlyDefenderSql * 12).toFixed(2));
+        yearlyBreakdown.push({
+            year: yr,
+            nodeCount,
+            avsCost,
+            defenderServersCost: defSrv,
+            defenderSqlCost: defSql,
+            totalCost: parseFloat((avsCost + defSrv + defSql).toFixed(2))
+        });
+    }
+
+    const totalCost = parseFloat(yearlyBreakdown.reduce((sum, y) => sum + y.totalCost, 0).toFixed(2));
+
+    return {
+        nodeType: nodeSpec.type,
+        nodeCount,
+        clusterCount: recommendation.clustersRequired,
+        monthlyAVSCost,
+        monthlyDefenderServers,
+        monthlyDefenderSql,
+        monthlyTotal,
+        yearlyBreakdown,
+        totalCost,
+        discountApplied: { payg: config.paygDiscount, ri: config.riDiscount }
+    };
+}
+
+/**
+ * Detect SQL/DB VMs by name pattern (case-insensitive).
+ * Returns count of VMs whose name contains 'SQL' or 'DB'.
+ */
+export function detectSqlVMs(vmNames: string[]): number {
+    return vmNames.filter(name => {
+        const upper = name.toUpperCase();
+        return upper.includes('SQL') || upper.includes('DB');
+    }).length;
 }
