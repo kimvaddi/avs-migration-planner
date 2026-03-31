@@ -49,29 +49,39 @@ Drop in your RVTools export or any CSV with VM data. The parser auto-detects the
 ![Import](docs/images/import.png)
 
 ### 2. AVS Node Sizing (Gen 1 + Gen 2)
-Analyzes your total CPU, memory, and storage needs (with configurable overhead buffers) and recommends the best-fit node type across all available SKUs:
+Analyzes your total CPU, memory, and storage needs (with configurable overhead buffers) and recommends the best-fit node type across all available SKUs.
 
-**Gen 1 (OSA Architecture)**
-| Node | Usable vCPUs | Usable RAM | Usable Storage |
-|------|-------------|-----------|----------------|
-| AV36 | 54 | 490 GB | 5.3 TB |
-| AV36P | 54 | 653 GB | 6.7 TB |
-| AV52 | 78 | 1,306 GB | 13.4 TB |
+Sizing uses the same methodology as the **AVS License Calculator v4.04**:
 
-**Gen 2 (ESA Architecture)**
-| Node | Usable vCPUs | Usable RAM | Usable Storage |
-|------|-------------|-----------|----------------|
-| AV48 | 72 | 870 GB | 9.0 TB |
-| AV64* | 96 | 870 GB | 5.4 TB |
+- **CPU**: Physical cores × configurable overcommit ratio (default **4:1** for production, up to 8:1 for dev/test)
+- **Memory**: Physical RAM × overcommit ratio × (1 − 10% vSphere overhead)
+- **Storage**: Raw capacity ÷ FTT policy overhead × (1 − 25% vSAN slack) × dedup/compression ratio
+- **N+1 HA**: One extra node automatically added for host failure tolerance
+- **Driving dimension**: Reports whether CPU, Memory, or Storage is the binding constraint
 
-*\*AV64 requires an existing AV36/AV36P/AV52 private cloud — cannot be the initial deployment.*
+**Usable capacity per node** (default config: 4:1 CPU, 1:1 memory, FTT=1 EC, 1.8× dedup, 25% slack):
 
-All specs validated against [official Microsoft documentation](https://learn.microsoft.com/azure/azure-vmware/introduction).
+| Node | Cores | Usable vCPUs | RAM | Usable RAM | Raw Storage | Usable Storage | Disks |
+|------|-------|-------------|-----|-----------|-------------|----------------|-------|
+| AV36 | 36 | 144 | 576 GB | 518 GB | 15.36 TB | 15.59 TB | 8×1920 GB |
+| AV36P | 36 | 144 | 768 GB | 691 GB | 19.20 TB | 19.49 TB | 6×3200 GB |
+| AV52 | 52 | 208 | 1,536 GB | 1,382 GB | 38.40 TB | 38.98 TB | 6×6400 GB |
+| AV48 | 48 | 192 | 1,024 GB | 922 GB | 25.60 TB | 25.98 TB | 8×3200 GB |
+| AV64 | 64 | 256 | 1,024 GB | 922 GB | 21.12 TB | 21.44 TB | 11×1920 GB |
 
-### 3. Live Cost Estimates
+All sizing parameters are configurable via the `SizingConfig` interface. Disk-level specs sourced from the [AVS Calculator v4.04 SkuList](https://github.com/KimVaddi/avs-migration-planner).
+
+> **Note:** AV48 and AV64 (Gen 2) are only available in [select Azure regions](#regional-availability). The extension's regional availability matrix will warn you if a Gen 2 node is not available in your target region.
+
+### 3. Live Cost Estimates & Multi-Year TCO
 Pricing fetched in real-time from the [Azure Retail Prices API](https://prices.azure.com) (no authentication needed). Falls back to reference estimates when offline.
 
 - **Pay-As-You-Go** vs **1-Year RI** vs **3-Year RI** — side by side
+- **Multi-year TCO** — 1 to 5-year consumption plan with yearly breakdown
+- **Microsoft Defender for Servers** Plan 2 cost per VM ($14.60/mo default)
+- **Microsoft Defender for SQL** cost per DB server ($15.00/mo default)
+- **Custom discounts** — Apply EA/CSP negotiated RI or PAYG discount rates
+- **SQL VM detection** — Automatically identifies SQL/DB VMs by name pattern for Defender cost modeling
 - Savings percentages calculated for each commitment tier
 - All 5 node types compared in one view
 - Region-configurable via VS Code settings
@@ -204,7 +214,34 @@ EU-locale CSVs using `;` as delimiter are auto-detected. No configuration needed
 - AI-assisted mode sends migration summary data to GitHub Copilot (same as any Copilot Chat interaction)
 - No telemetry, no tracking, no analytics
 
+## Regional Availability
+
+The extension includes a 37-region AVS availability matrix (sourced from the AVS Calculator v4.04):
+
+- **Gen 1 nodes** (AV36, AV36P, AV52) — available in all AVS regions
+- **Gen 2 nodes** (AV48, AV64) — available in: US East, EU North, CA Central, CA East, UK West, CH West, BE Central
+- **Stretched clusters** — supported in: US East, UK South, AU East, DE West Central, EU West
+
+Use `getAvailableNodeTypes(region)` to check which node types are available in your target region.
+
 ## Release Notes
+
+### 1.1.0
+- **Sizing engine overhaul** — vSAN storage formula with configurable FTT policy, dedup/compression, and slack space (replaces flat 35% multiplier)
+- **CPU overcommit ratios** — configurable 4:1 (production) or 8:1 (dev/test) instead of HT-based calculation
+- **Memory overcommit** — configurable ratio with explicit vSphere 10% overhead
+- **N+1 HA policy** — automatically adds one spare node for host failure tolerance
+- **Driving dimension** — reports whether CPU, Memory, or Storage is the binding constraint
+- **AV64 specs corrected** — raw storage fixed from 15.36 TB to 21.12 TB (11×1920 GB Gen 2)
+- **Multi-year TCO** — 1 to 5-year consumption plans with yearly cost breakdown
+- **Defender for Servers/SQL** — cost modeling for Microsoft Defender ($14.60/VM/mo, $15.00/DB/mo)
+- **Custom discounts** — EA/CSP negotiated RI and PAYG discount rates
+- **SQL VM detection** — automatic identification of SQL/DB VMs by name pattern
+- **Regional availability matrix** — 37 regions with Gen 2 and stretched cluster support flags
+- **ARM region mapping** — bidirectional ARM-to-display region name lookup
+- **SizingConfig interface** — all sizing parameters configurable (overcommit, dedup, FTT, slack, HA)
+- Disk-level specs (count, size) added to all node types
+- 162 unit tests (was 130)
 
 ### 1.0.0
 - RVTools and standard CSV import with auto-detection and EU semicolon support

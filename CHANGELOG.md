@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.1.0] - 2026-03-31
+
+### Sizing Engine Overhaul
+- **vSAN storage formula** — Replaced flat 35% usable multiplier with proper calculation: `raw / FTT_overhead × (1 - vSAN_slack) × dedup_ratio`. Aligns with AVS License Calculator v4.04.
+- **CPU overcommit ratios** — Configurable 4:1 (production default) or 8:1 (dev/test). Replaces HT-based calculation.
+- **Memory overcommit** — Configurable ratio with explicit 10% vSphere overhead.
+- **N+1 HA policy** — Automatically adds one spare node for host failure tolerance (configurable).
+- **Driving dimension** — Each recommendation now reports which resource (CPU/Memory/Storage) is the binding constraint.
+- **SizingConfig interface** — All sizing parameters (overcommit, dedup, FTT, slack, HA) are configurable via a single config object.
+
+### Bug Fixes
+- **AV64 raw storage corrected** — Fixed from 15.36 TB (OSA variant) to 21.12 TB (11×1920 GB NVMe, Gen 2).
+- **All node usable capacities recalculated** — Using proper vSAN formula instead of flat multiplier.
+- **Disk-level specs added** — `diskCount` and `diskSizeGB` fields on all node types.
+
+### Cost Estimation
+- **Multi-year TCO** — `calculateTCO()` produces 1 to 5-year consumption plans with yearly breakdown.
+- **Defender for Servers** — Microsoft Defender Plan 2 cost per VM ($14.60/mo default).
+- **Defender for SQL** — Per-DB server cost ($15.00/mo default).
+- **Custom discounts** — EA/CSP negotiated RI and PAYG discount rates supported.
+- **SQL VM detection** — `detectSqlVMs()` identifies SQL/DB VMs by name pattern for Defender cost modeling.
+
+### Regional Availability
+- **37-region availability matrix** — Tracks which regions support Gen 2 nodes and stretched clusters.
+- **ARM region mapping** — Bidirectional mapping between ARM names (e.g., `eastus`) and display names (e.g., `US East`).
+- **`getAvailableNodeTypes(region)`** — Returns which node SKUs are available in a given region.
+
+### Technical
+- 162 unit tests across 8 test suites (was 130 across 7)
+- New module: `src/models/regionAvailability.ts`
+- New test suite: `src/test/unit/regionAvailability.test.ts`
+- Sizing methodology cross-validated against AVS License Calculator v4.04 (LYB AVS)
+
 ## [1.0.0] - 2026-03-30
 
 ### Features
