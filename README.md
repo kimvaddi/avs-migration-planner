@@ -17,8 +17,10 @@ Planning an AVS migration today means weeks of spreadsheets — analyzing VM inv
 | Weeks of manual spreadsheet analysis | **Minutes** — import CSV, get instant results |
 | Guessing at node types and cluster sizes | **Data-driven** — fit-score algorithm across 5 node types |
 | Outdated pricing from old proposals | **Live pricing** from Azure Retail Prices API |
+| No multi-year TCO for stakeholders | **5-year TCO** with Defender, discounts, yearly breakdown |
 | Hand-writing Bicep templates | **Auto-generated** Bicep with ExpressRoute + NSX-T segments |
 | Migration waves planned on whiteboards | **Smart wave planner** with dependency grouping and risk scoring |
+| Producing deliverables in loose CSVs | **Professional Excel report** — 6-sheet .xlsx ready for stakeholders |
 | No way to ask "what if" questions | **AI-assisted** — `@avs` in Copilot Chat for instant expert analysis |
 
 ## Quick Start
