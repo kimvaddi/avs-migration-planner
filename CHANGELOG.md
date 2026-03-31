@@ -5,6 +5,11 @@
 ### Excel Report Export
 - **Excel report export** — Professional 7-sheet `.xlsx` workbook with Input Fields, Node Sizing, Node Selection Guide, Pricing & Cost, VM Inventory, Wave Plan, and SKU Reference. Color coded, auto-filtered, currency-formatted. Uses `exceljs`.
 
+### MCP Server, Language Model Tools & Prompts
+- **MCP server** — Standalone stdio server (`src/mcp/server.ts`) with 7 tools: `avs_parse_inventory`, `avs_size_workload`, `avs_node_advice`, `avs_check_region`, `avs_calculate_tco`, `avs_list_node_specs`. Works with GitHub Copilot CLI, Claude Desktop, and any MCP client.
+- **Language Model Tools** — 5 tools registered as `contributes.languageModelTools` for cross-extension access via `#tool:` in Copilot Chat.
+- **Prompt files** — 4 reusable `.prompt.md` files: `/avs-sizing-report`, `/avs-compare-nodes`, `/avs-tco-estimate`, `/avs-wave-review`.
+
 ### Node Selection Guide
 - **Node Selection Guide** — Architect-level recommendation rationale per node type with verdict (★ RECOMMENDED / ○ SUITABLE / ✗ NOT RECOMMENDED), cost efficiency metrics ($/vCPU, $/GB RAM, $/TB storage), waste analysis, workload archetypes, regional availability warnings, external storage suggestions, and Microsoft Learn source links.
 

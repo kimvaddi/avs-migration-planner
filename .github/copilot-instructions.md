@@ -93,3 +93,23 @@ The dashboard in `src/views/dashboardProvider.ts` uses a strict CSP with **no Ja
 - [README.md](../README.md) — Features, quick start, node specs, pricing disclaimers
 - [RUNBOOK.md](../RUNBOOK.md) — Build log, test results, resolved issues with root cause analysis
 - [CHANGELOG.md](../CHANGELOG.md) — Release history
+
+## MCP Server
+
+The extension ships a standalone MCP server at `src/mcp/server.ts` (stdio transport) exposing 7 tools:
+`avs_parse_inventory`, `avs_size_workload`, `avs_node_advice`, `avs_check_region`, `avs_calculate_tco`, `avs_list_node_specs`.
+
+Config: `.vscode/mcp.json` (workspace) or `~/.config/github-copilot/mcp.json` (CLI).
+Dependencies: `@modelcontextprotocol/sdk`, `zod@3`.
+Test: `npx @modelcontextprotocol/inspector npx tsx src/mcp/server.ts`
+
+## Language Model Tools
+
+5 tools registered in `contributes.languageModelTools` in `package.json`:
+`avsMigrationPlanner_getSizing`, `_getCosts`, `_getNodeAdvice`, `_getWavePlan`, `_checkRegion`.
+Implementation: `src/chat/languageModelTools.ts`.
+
+## Prompt Files
+
+4 reusable prompts in `.github/prompts/`:
+`avs-sizing-report`, `avs-compare-nodes`, `avs-tco-estimate`, `avs-wave-review`.

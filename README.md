@@ -312,6 +312,131 @@ EU-locale CSVs using `;` as delimiter are auto-detected. No configuration needed
 - **GitHub Copilot** subscription (for `@avs` AI-assisted commands — optional)
 - **Internet access** (for live pricing from prices.azure.com — works offline with fallback estimates)
 
+## MCP Server — Use from Any AI Client (No VS Code Required)
+
+The extension ships with a **standalone MCP server** (`src/mcp/server.ts`) that exposes 7 AVS tools via the [Model Context Protocol](https://modelcontextprotocol.io). Works with GitHub Copilot CLI, Claude Desktop, or any MCP-compatible client.
+
+### Available MCP Tools
+
+| Tool | What it does |
+|------|--------------|
+| `avs_parse_inventory` | Parse CSV text → VM count, vCPUs, RAM, storage summary |
+| `avs_size_workload` | Calculate node sizing for given vCPUs/RAM/storage with configurable overcommit |
+| `avs_node_advice` | Architect-level node selection with cost, waste, and rationale |
+| `avs_check_region` | Check which node types are available in a given Azure region |
+| `avs_calculate_tco` | Multi-year TCO with Defender costs and custom discounts |
+| `avs_list_node_specs` | All 5 AVS node hardware specs and pricing |
+
+### Setup: GitHub Copilot CLI
+
+**Prerequisites:** [Node.js 18+](https://nodejs.org), [GitHub CLI](https://cli.github.com) with `gh extension install github/gh-copilot`
+
+**Step 1.** Clone and install:
+```bash
+git clone https://github.com/KimVaddi/avs-migration-planner.git
+cd avs-migration-planner
+npm install
+```
+
+**Step 2.** Verify the server starts:
+```bash
+npx tsx src/mcp/server.ts
+# Should print: "AVS Migration Planner MCP server running on stdio"
+# Press Ctrl+C to stop
+```
+
+**Step 3.** Register with Copilot CLI:
+
+**Windows (PowerShell):**
+```powershell
+$dir = "$env:USERPROFILE\.config\github-copilot"
+New-Item -ItemType Directory -Path $dir -Force | Out-Null
+@"
+{
+  "mcpServers": {
+    "avs-migration-planner": {
+      "command": "npx",
+      "args": ["tsx", "C:\\path\\to\\avs-migration-planner\\src\\mcp\\server.ts"]
+    }
+  }
+}
+"@ | Set-Content "$dir\mcp.json" -Encoding UTF8
+```
+
+**macOS / Linux:**
+```bash
+mkdir -p ~/.config/github-copilot
+cat > ~/.config/github-copilot/mcp.json << 'EOF'
+{
+  "mcpServers": {
+    "avs-migration-planner": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/avs-migration-planner/src/mcp/server.ts"]
+    }
+  }
+}
+EOF
+```
+
+> **Important:** Replace the path with the **absolute path** to where you cloned the repo.
+
+**Step 4.** Use it:
+```bash
+gh copilot suggest "Size an AVS workload with 961 vCPUs, 2848 GB RAM, 155 TB storage"
+gh copilot suggest "What AVS node types are available in westeurope?"
+gh copilot suggest "Calculate 5-year TCO for 184 VMs with 19 SQL servers and 30% RI discount"
+```
+
+### Setup: Claude Desktop
+
+Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
+
+```json
+{
+  "mcpServers": {
+    "avs-migration-planner": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/avs-migration-planner/src/mcp/server.ts"]
+    }
+  }
+}
+```
+
+### Setup: VS Code (workspace-level)
+
+Already configured in `.vscode/mcp.json` — works automatically when the repo is open.
+
+### Test with MCP Inspector
+
+```bash
+npx @modelcontextprotocol/inspector npx tsx src/mcp/server.ts
+```
+
+Opens a browser UI where you can call each tool interactively and see JSON responses.
+
+## Language Model Tools — Cross-Extension API
+
+The extension also registers **5 Language Model Tools** that other VS Code extensions can call via `#tool:` in Copilot Chat:
+
+| Tool | Usage in Copilot Chat |
+|------|----------------------|
+| `#tool:avsMigrationPlanner_getSizing` | Get sizing table for imported inventory |
+| `#tool:avsMigrationPlanner_getCosts` | Get cost comparison (PAYG/RI) |
+| `#tool:avsMigrationPlanner_getNodeAdvice` | Get architect-level node advisory |
+| `#tool:avsMigrationPlanner_getWavePlan` | Get wave plan summary |
+| `#tool:avsMigrationPlanner_checkRegion` | Check regional availability |
+
+## Prompt Files — Reusable Chat Templates
+
+4 pre-built prompts available as `/` commands in Copilot Chat:
+
+| Prompt | What it generates |
+|--------|------------------|
+| `/avs-sizing-report` | Full sizing report with all 5 node types |
+| `/avs-compare-nodes` | Side-by-side node comparison with cost/waste rationale |
+| `/avs-tco-estimate` | Multi-year TCO with Defender and discount scenarios |
+| `/avs-wave-review` | Wave plan review with risk assessment |
+
 ## Data & Privacy
 
 - **No data leaves your machine** except one HTTPS call to `prices.azure.com` for pricing (a public API, no auth)
