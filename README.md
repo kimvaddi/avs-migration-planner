@@ -25,16 +25,69 @@ Planning an AVS migration today means weeks of spreadsheets — analyzing VM inv
 
 ## Quick Start
 
-1. **Install** the extension from the VS Code Marketplace
-2. **Import** your VM inventory: `Ctrl+Shift+P` → `AVS: Import VM Inventory`
-3. **View** the dashboard: `Ctrl+Shift+P` → `AVS: Open Migration Dashboard`
-4. **Ask AI**: Open Copilot Chat → type `@avs /analyze`
+### Step 1: Install
 
-That's it. You'll see node recommendations, cost comparisons, migration waves, and network extension plans — all in seconds.
+**From Marketplace:**
+1. Open VS Code
+2. Go to Extensions (`Ctrl+Shift+X`)
+3. Search for **"AVS Migration Planner"**
+4. Click **Install**
 
-<!-- Screenshot: Full dashboard after importing a VM inventory -->
-<!-- Replace with your own screenshot: save to docs/images/dashboard.png -->
+**From VSIX (manual):**
+```bash
+code --install-extension avs-migration-planner-1.1.0.vsix
+```
+
+### Step 2: Import Your VM Inventory
+
+1. Press `Ctrl+Shift+P` → type **`AVS: Import VM Inventory`**
+2. Select your CSV file (RVTools vInfo export or standard CSV)
+3. The extension instantly:
+   - Parses and validates all VMs
+   - Fetches live Azure pricing for your region
+   - Calculates node sizing across all 5 AVS SKUs
+   - Generates migration waves with risk levels
+   - Shows a notification like:
+
+   > *“Imported 184 VMs (rvtools format). Best fit: AV64 (Gen 2 - VCF) × 9 nodes. Pricing: live API (uksouth).”*
+
+### Step 3: View the Dashboard
+
+Press `Ctrl+Shift+P` → **`AVS: Open Migration Dashboard`**
+
+You’ll see:
+- **Inventory summary** — VM count, vCPUs, memory, storage, OS breakdown
+- **Node recommendations** — all 5 node types ranked by fit score
+- **Cost comparison** — PAYG vs 1yr RI vs 3yr RI for each node type
+- **Migration waves** — per-wave VM lists with risk badges and duration estimates
+
 ![Dashboard](docs/images/dashboard.png)
+
+### Step 4: Export Deliverables
+
+| What to export | Command | Output |
+|---------------|---------|--------|
+| Full Excel report | `AVS: Export Excel Report (.xlsx)` | 7-sheet workbook with sizing, costs, VMs, waves, node guide |
+| Bicep templates | `AVS: Generate Bicep Templates` | `main.bicep` + `main.parameters.json` |
+| Wave plan | `AVS: Generate Migration Wave Plan` | CSV (for Excel) or text |
+| HCX config | `AVS: Generate HCX Configuration` | JSON or text |
+| Full report | `AVS: Export Full Migration Report` | Markdown/text with everything |
+
+### Step 5 (Optional): Ask the AI
+
+Open **Copilot Chat** and type:
+
+```
+@avs /analyze
+```
+
+The AI sees your actual imported data and gives targeted advice — not generic answers.
+
+Other commands: `@avs /recommend`, `@avs /risk`, `@avs /optimize`, `@avs /explain`
+
+Or ask freeform: `@avs Why is AV36P better than AV52 for my workload?`
+
+> Requires **GitHub Copilot** subscription. All other features work without it.
 
 ## What You Get
 
@@ -161,12 +214,45 @@ Generates a professional, multi-sheet Excel workbook ready for stakeholder deliv
 |-------|--------|
 | **Input Fields** | Sizing config (overcommit, FTT, dedup, slack), workload summary, required resources |
 | **Node Sizing** | All 5 node types with utilization %, fit score, driving dimension, cluster layout. Best fit highlighted in green. |
+| **Node Selection Guide** | Architect-level verdict, cost efficiency ($/vCPU, $/GB RAM), waste analysis, rationale, MS Learn sources. |
 | **Pricing & Cost** | PAYG / 1yr RI / 3yr RI per node type. Currency-formatted with savings %. |
 | **VM Inventory** | Full VM list with auto-filter, SQL/DB detection, power-state color coding. |
 | **Wave Plan** | Every VM mapped to its migration wave with risk levels, day offsets, durations. |
 | **SKU Reference** | Hardware specs for all 5 AVS node types with pricing. |
 
 Uses the `exceljs` library. Command: `AVS: Export Excel Report (.xlsx)`.
+
+### 10. Node Selection Guide
+Architect-level recommendation rationale for every node type. Helps customers understand *why* one node is better than another — no Copilot subscription needed.
+
+For each of the 5 AVS node types, the guide provides:
+- **Verdict** — ★ RECOMMENDED / ○ SUITABLE / ✗ NOT RECOMMENDED
+- **Cost efficiency** — $/vCPU, $/GB RAM, $/TB storage (3yr RI baseline)
+- **Waste analysis** — CPU/Memory/Storage unused %, identifies the most wasted resource
+- **Workload archetypes** — e.g., AV52 = "Large databases, SQL Server, SAP HANA"
+- **Regional availability** — warns if Gen 2 nodes aren't available in your target region
+- **External storage** — suggests Azure NetApp Files or Elastic SAN for storage-bound workloads
+- **MS Learn sources** — links to official Microsoft documentation for every recommendation
+
+Appears in the **Excel report** ("Node Selection Guide" sheet) and the **full text report**.
+
+Example output:
+```
+─── AV36P [★ RECOMMENDED] ───
+  AV36P (Performance) — Best fit for your workload. Memory-driven, 4 nodes, 92/100 fit score.
+
+  Rationale:
+    • Driving dimension: Memory — this resource requires the most nodes.
+    • Memory utilization 72% is in the optimal 50–80% band.
+    • NVMe-based capacity tier provides higher IOPS than AV36 SSD.
+
+  Cost Efficiency (3yr RI monthly):
+    • $/vCPU:       $44.67
+    • $/GB RAM:     $9.30
+    • $/TB Storage: $1320.68
+
+  Best for: Memory-intensive, VDI, In-memory databases, Caching layers
+```
 
 ## All Commands
 
@@ -178,7 +264,7 @@ Uses the `exceljs` library. Command: `AVS: Export Excel Report (.xlsx)`.
 | `AVS: Generate HCX Configuration` | Export HCX config as JSON or text |
 | `AVS: Generate Migration Wave Plan` | Export waves as CSV (Excel) or text |
 | `AVS: Export Full Migration Report` | Everything in one Markdown/text file |
-| `AVS: Export Excel Report (.xlsx)` | Professional 6-sheet Excel workbook |
+| `AVS: Export Excel Report (.xlsx)` | Professional 7-sheet Excel workbook |
 
 ## Settings
 
@@ -233,18 +319,25 @@ EU-locale CSVs using `;` as delimiter are auto-detected. No configuration needed
 
 ## Regional Availability
 
-The extension includes a 37-region AVS availability matrix (sourced from the AVS Calculator v4.04):
+The extension includes a **37-region AVS availability matrix** (sourced from the AVS Calculator v4.04). When you import a VM inventory, the extension checks your configured pricing region and:
 
-- **Gen 1 nodes** (AV36, AV36P, AV52) — available in all AVS regions
-- **Gen 2 nodes** (AV48, AV64) — available in: US East, EU North, CA Central, CA East, UK West, CH West, BE Central
-- **Stretched clusters** — supported in: US East, UK South, AU East, DE West Central, EU West
+- **Warns you** if you select a Gen 2 node (AV48/AV64) in a region that doesn’t support it
+- **Marks unavailable nodes** as “NOT RECOMMENDED” in the Node Selection Guide
+- Shows availability in the full text report
 
-Use `getAvailableNodeTypes(region)` to check which node types are available in your target region.
+**Region support summary:**
+
+| Capability | Supported Regions |
+|-----------|------------------|
+| Gen 1 (AV36, AV36P, AV52) | All 37 AVS regions |
+| Gen 2 (AV48, AV64) | US East, EU North, CA Central, CA East, UK West, CH West, BE Central |
+| Stretched Clusters (99.99% SLA) | US East, UK South, AU East, DE West Central, EU West |
 
 ## Release Notes
 
 ### 1.1.0
-- **Excel report export** — Professional 6-sheet `.xlsx` workbook (Input Fields, Node Sizing, Pricing & Cost, VM Inventory, Wave Plan, SKU Reference) with formatting, auto-filter, and color coding
+- **Excel report export** — Professional 7-sheet `.xlsx` workbook (Input Fields, Node Sizing, Node Selection Guide, Pricing & Cost, VM Inventory, Wave Plan, SKU Reference) with formatting, auto-filter, and color coding
+- **Node Selection Guide** — Architect-level recommendation rationale with cost efficiency ($/vCPU, $/GB RAM), waste analysis, workload archetypes, regional warnings, and MS Learn source links
 - **Sizing engine overhaul** — vSAN storage formula with configurable FTT policy, dedup/compression, and slack space (replaces flat 35% multiplier)
 - **CPU overcommit ratios** — configurable 4:1 (production) or 8:1 (dev/test) instead of HT-based calculation
 - **Memory overcommit** — configurable ratio with explicit vSphere 10% overhead
@@ -259,7 +352,7 @@ Use `getAvailableNodeTypes(region)` to check which node types are available in y
 - **ARM region mapping** — bidirectional ARM-to-display region name lookup
 - **SizingConfig interface** — all sizing parameters configurable (overcommit, dedup, FTT, slack, HA)
 - Disk-level specs (count, size) added to all node types
-- 178 unit tests (was 130)
+- 198 unit tests (was 130)
 
 ### 1.0.0
 - RVTools and standard CSV import with auto-detection and EU semicolon support

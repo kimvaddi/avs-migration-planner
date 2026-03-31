@@ -3,7 +3,10 @@
 ## [1.1.0] - 2026-03-31
 
 ### Excel Report Export
-- **Excel report export** — Professional 6-sheet `.xlsx` workbook with Input Fields, Node Sizing, Pricing & Cost, VM Inventory, Wave Plan, and SKU Reference. Color coded, auto-filtered, currency-formatted. Uses `exceljs`.
+- **Excel report export** — Professional 7-sheet `.xlsx` workbook with Input Fields, Node Sizing, Node Selection Guide, Pricing & Cost, VM Inventory, Wave Plan, and SKU Reference. Color coded, auto-filtered, currency-formatted. Uses `exceljs`.
+
+### Node Selection Guide
+- **Node Selection Guide** — Architect-level recommendation rationale per node type with verdict (★ RECOMMENDED / ○ SUITABLE / ✗ NOT RECOMMENDED), cost efficiency metrics ($/vCPU, $/GB RAM, $/TB storage), waste analysis, workload archetypes, regional availability warnings, external storage suggestions, and Microsoft Learn source links.
 
 ### Sizing Engine Overhaul
 - **vSAN storage formula** — Replaced flat 35% usable multiplier with proper calculation: `raw / FTT_overhead × (1 - vSAN_slack) × dedup_ratio`. Aligns with AVS License Calculator v4.04.
@@ -31,9 +34,11 @@
 - **`getAvailableNodeTypes(region)`** — Returns which node SKUs are available in a given region.
 
 ### Technical
-- 178 unit tests across 9 test suites (was 162 across 8)
+- 198 unit tests across 10 test suites (was 162 across 8)
 - New module: `src/generators/excelGenerator.ts`
+- New module: `src/analyzers/nodeAdvisor.ts`
 - New test suite: `src/test/unit/excelGenerator.test.ts`
+- New test suite: `src/test/unit/nodeAdvisor.test.ts`
 - Added `exceljs` as runtime dependency for Excel export
 - Sizing methodology cross-validated against AVS License Calculator v4.04 (LYB AVS)
 
