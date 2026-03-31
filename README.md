@@ -1,5 +1,9 @@
 # AVS Migration Planner
 
+<p align="center">
+  <img src="media/icon.png" alt="AVS Migration Planner" width="128" />
+</p>
+
 **Azure VMware Solution Migration Planner with AI-Assisted Analysis** for Visual Studio Code.
 
 > Turn weeks of Azure VMware Solution migration planning into minutes.
@@ -26,6 +30,10 @@ Planning an AVS migration today means weeks of spreadsheets — analyzing VM inv
 
 That's it. You'll see node recommendations, cost comparisons, migration waves, and network extension plans — all in seconds.
 
+<!-- Screenshot: Full dashboard after importing a VM inventory -->
+<!-- Replace with your own screenshot: save to docs/images/dashboard.png -->
+![Dashboard](docs/images/dashboard.png)
+
 ## What You Get
 
 ### 1. Import Any VM Inventory
@@ -35,6 +43,10 @@ Drop in your RVTools export or any CSV with VM data. The parser auto-detects the
 - **Standard CSV** — Works with any CSV that has name, vCPUs, memory, storage columns
 - **EU locales** — Semicolon-delimited CSVs detected automatically
 - **Validation** — Warnings for missing data, unit conversion (MB→GB), power state normalization
+
+<!-- Screenshot: Import notification showing VM count and best-fit recommendation -->
+<!-- Replace with your own screenshot: save to docs/images/import.png -->
+![Import](docs/images/import.png)
 
 ### 2. AVS Node Sizing (Gen 1 + Gen 2)
 Analyzes your total CPU, memory, and storage needs (with configurable overhead buffers) and recommends the best-fit node type across all available SKUs:
@@ -102,6 +114,10 @@ Produces deployment-ready Bicep templates for your AVS private cloud:
 ### 7. AI-Assisted Mode (`@avs` in Copilot Chat)
 Ask questions about your migration using natural language. The AI sees your actual imported data — not generic advice.
 
+<!-- Screenshot: @avs /analyze in Copilot Chat -->
+<!-- Replace with your own screenshot: save to docs/images/ai-chat.png -->
+![AI Chat](docs/images/ai-chat.png)
+
 | Command | What you get |
 |---------|-------------|
 | `@avs /analyze` | Executive summary, workload characterization, complexity rating, top risks |
@@ -115,6 +131,10 @@ Requires **GitHub Copilot subscription** and **VS Code 1.93+**.
 
 ### 8. Interactive Dashboard
 A full-page HTML dashboard with:
+
+<!-- Screenshot: Dashboard with metrics, cost table, wave plan -->
+<!-- Replace with your own screenshot: save to docs/images/dashboard-detail.png -->
+![Dashboard Detail](docs/images/dashboard-detail.png)
 - Visual metric cards (VMs, vCPUs, memory, storage, networks)
 - OS distribution breakdown
 - Node recommendation comparison table with fit scores
