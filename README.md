@@ -4,11 +4,13 @@
   <img src="media/icon.png" alt="AVS Migration Planner" width="128" />
 </p>
 
-**Azure VMware Solution Migration Planner with AI-Assisted Analysis** for Visual Studio Code.
+**Azure VMware Solution Migration Planner — VS Code Extension + MCP Server + AI Tools** 
 
-> Turn weeks of Azure VMware Solution migration planning into minutes.
+> Turn weeks of Azure VMware Solution migration planning into minutes — from any AI interface.
 
-Planning an AVS migration today means weeks of spreadsheets — analyzing VM inventories, mapping to node types, estimating costs, planning network extensions, and writing Bicep templates from scratch. This extension does all of that inside VS Code.
+A complete AVS capacity planning and migration toolkit that runs as a **VS Code extension** (interactive dashboard, Excel reports, Bicep IaC), an **MCP server** (callable from Copilot CLI, Claude, or any MCP client), **Language Model Tools** (cross-extension API), and **reusable prompt files** — all powered by the same core engine.
+
+Import a VMware VM inventory → get node sizing across 5 SKUs (AV36/AV36P/AV52/AV48/AV64) with configurable overcommit ratios → live Azure pricing → 5-year TCO with Defender costs → migration wave plans with HCX configs → Bicep templates → professional 7-sheet Excel report → architect-level node selection guide — all in seconds.
 
 ## Why This Exists
 

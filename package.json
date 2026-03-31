@@ -1,7 +1,7 @@
 {
   "name": "avs-migration-planner",
   "displayName": "AVS Migration Planner",
-  "description": "Azure VMware Solution migration planner — CSV/RVTools import, AVS node sizing (AV36/AV36P/AV52/AV48/AV64), live Azure pricing, 5-year TCO with Defender costs, migration wave planning, HCX configs, Bicep IaC, professional Excel reports, node selection guide, and @avs Copilot Chat AI assistant.",
+  "description": "Azure VMware Solution migration planner — VS Code extension + MCP server + AI tools. CSV/RVTools import, AVS node sizing (AV36-AV64), live Azure pricing, 5-year TCO, Defender costs, wave planning, HCX configs, Bicep IaC, 7-sheet Excel reports, node selection guide, @avs Copilot Chat, Language Model Tools, and 7-tool MCP server for any AI client.",
   "version": "1.1.0",
   "publisher": "KimVaddi",
   "author": {
