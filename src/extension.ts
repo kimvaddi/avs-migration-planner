@@ -19,6 +19,7 @@ import { VMInventoryTreeProvider, RecommendationsTreeProvider } from './views/tr
 import { fetchAVSPricing, AVSLivePricing } from './pricing/azurePricingClient';
 import { updateNodePricing } from './models/avsNode';
 import { registerChatParticipant } from './chat/chatParticipant';
+import { registerLanguageModelTools } from './chat/languageModelTools';
 
 // Extension state
 let currentPricing: AVSLivePricing | undefined;
@@ -56,6 +57,15 @@ export function activate(context: vscode.ExtensionContext) {
         getCosts: () => currentCosts,
         getWavePlan: () => currentWavePlan,
         getHCXConfig: () => currentHCXConfig
+    });
+
+    // Register language model tools for cross-extension access
+    registerLanguageModelTools(context, {
+        getVMs: () => currentVMs,
+        getSummary: () => currentSummary,
+        getSizing: () => currentSizing,
+        getCosts: () => currentCosts,
+        getWavePlan: () => currentWavePlan
     });
 
     vscode.window.registerTreeDataProvider('avsMigrationPlanner.vmInventory', vmTreeProvider);

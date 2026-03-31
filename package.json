@@ -14,7 +14,7 @@
     "url": "https://github.com/KimVaddi/avs-migration-planner"
   },
   "engines": {
-    "vscode": "^1.93.0"
+    "vscode": "^1.96.0"
   },
   "categories": [
     "Azure",
@@ -135,6 +135,73 @@
       }
     ]
   },
+  "languageModelTools": [
+    {
+      "name": "avsMigrationPlanner_getSizing",
+      "displayName": "Get AVS Sizing",
+      "description": "Returns AVS node sizing recommendations for the imported VM inventory — node types, utilization, fit scores, driving dimension.",
+      "canBeReferencedInPrompt": true,
+      "icon": "$(server)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "avsMigrationPlanner_getCosts",
+      "displayName": "Get AVS Cost Comparison",
+      "description": "Returns AVS cost comparison (PAYG, 1yr RI, 3yr RI) for all node types based on the imported VM inventory.",
+      "canBeReferencedInPrompt": true,
+      "icon": "$(credit-card)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "avsMigrationPlanner_getNodeAdvice",
+      "displayName": "Get AVS Node Selection Advice",
+      "description": "Returns architect-level node selection rationale with cost efficiency, waste analysis, regional warnings, and workload archetypes.",
+      "canBeReferencedInPrompt": true,
+      "icon": "$(lightbulb)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "type": "string",
+            "description": "Azure region to check node availability (e.g., eastus, uksouth). Defaults to configured pricing region."
+          }
+        }
+      }
+    },
+    {
+      "name": "avsMigrationPlanner_getWavePlan",
+      "displayName": "Get AVS Migration Wave Plan",
+      "description": "Returns migration wave plan summary — waves, VMs per wave, risk levels, durations, scheduling.",
+      "canBeReferencedInPrompt": true,
+      "icon": "$(list-ordered)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "avsMigrationPlanner_checkRegion",
+      "displayName": "Check AVS Region Availability",
+      "description": "Checks which AVS node types (AV36, AV36P, AV52, AV48, AV64) are available in a given Azure region, plus stretched cluster and Gen 2 support.",
+      "canBeReferencedInPrompt": true,
+      "icon": "$(globe)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "type": "string",
+            "description": "Azure region name (e.g., eastus, uksouth, westeurope)"
+          }
+        }
+      }
+    }
+  ],
   "configuration": {
     "title": "AVS Migration Planner",
     "properties": {
@@ -191,7 +258,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.0",
-    "@types/vscode": "^1.93.0",
+    "@types/vscode": "^1.110.0",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "@vscode/vsce": "^2.22.0",
@@ -204,6 +271,8 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "exceljs": "^4.4.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "exceljs": "^4.4.0",
+    "zod": "^3.25.76"
   }
 }

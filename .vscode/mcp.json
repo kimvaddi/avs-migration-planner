@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "avs-migration-planner": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "src/mcp/server.ts"],
+      "env": {}
+    }
+  }
+}
