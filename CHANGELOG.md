@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.3.0] - 2026-03-31
+
+### MCP Server
+- **Standalone MCP server** — 7-tool stdio server at `src/mcp/server.ts`. Works with GitHub Copilot CLI, Claude Desktop, and any MCP-compatible client. No VS Code required.
+- Tools: `avs_parse_inventory`, `avs_size_workload`, `avs_node_advice`, `avs_check_region`, `avs_calculate_tco`, `avs_list_node_specs`.
+- Config file: `.vscode/mcp.json` (workspace) or `~/.config/github-copilot/mcp.json` (Copilot CLI).
+- Dependencies: `@modelcontextprotocol/sdk`, `zod@3`.
+
+### Language Model Tools
+- 5 tools registered in `contributes.languageModelTools` in `package.json`.
+- Other VS Code extensions can invoke via `#tool:avsMigrationPlanner_getSizing`, `_getCosts`, `_getNodeAdvice`, `_getWavePlan`, `_checkRegion`.
+- Implementation: `src/chat/languageModelTools.ts`.
+
+### Prompt Files
+- 4 reusable prompts in `.github/prompts/`: `avs-sizing-report`, `avs-compare-nodes`, `avs-tco-estimate`, `avs-wave-review`.
+- Available as `/` commands in Copilot Chat.
+
+### Technical
+- Engine version updated `^1.96.0` → `^1.110.0` for Language Model Tools API.
+- Added `@modelcontextprotocol/sdk` and `zod@3` as dependencies.
+- MCP CLI setup documentation added to README.
+
+## [1.2.0] - 2026-03-31
+
+### Node Selection Guide
+- **Node Selection Guide** — Architect-level recommendation rationale per node type with verdict, cost efficiency metrics, waste analysis, workload archetypes, regional availability warnings, external storage suggestions, and Microsoft Learn source links.
+- New "Node Selection Guide" sheet added to Excel report (now 7 sheets).
+- Advisory text appended to full migration report export.
+
+### Technical
+- New module: `src/analyzers/nodeAdvisor.ts`
+- New test suite: `src/test/unit/nodeAdvisor.test.ts` (18 tests)
+- 2 new Excel advisory tests
+- 198 unit tests total (was 178)
+
 ## [1.1.0] - 2026-03-31
 
 ### Excel Report Export

@@ -462,6 +462,19 @@ The extension includes a **37-region AVS availability matrix** (sourced from the
 
 ## Release Notes
 
+### 1.3.0
+- **MCP Server** — Standalone 7-tool MCP server (`src/mcp/server.ts`) for GitHub Copilot CLI, Claude Desktop, and any MCP client. Tools: `avs_parse_inventory`, `avs_size_workload`, `avs_node_advice`, `avs_check_region`, `avs_calculate_tco`, `avs_list_node_specs`. No VS Code required.
+- **Language Model Tools** — 5 tools registered as `contributes.languageModelTools` — other VS Code extensions can call `#tool:avsMigrationPlanner_getSizing`, `_getCosts`, `_getNodeAdvice`, `_getWavePlan`, `_checkRegion`.
+- **Prompt files** — 4 reusable `/` commands: `/avs-sizing-report`, `/avs-compare-nodes`, `/avs-tco-estimate`, `/avs-wave-review`.
+- **MCP CLI setup guide** — Step-by-step instructions for registering the MCP server with Copilot CLI, Claude Desktop, and VS Code.
+- Engine version updated to ^1.110.0 for Language Model Tools API support.
+
+### 1.2.0
+- **Node Selection Guide** — Architect-level recommendation rationale per node type: verdict (★ RECOMMENDED / ○ SUITABLE / ✗ NOT RECOMMENDED), cost efficiency ($/vCPU, $/GB RAM, $/TB storage), waste analysis, workload archetypes, regional warnings, external storage suggestions, and MS Learn source links.
+- New "Node Selection Guide" sheet added to Excel report (now 7 sheets).
+- Advisory text appended to full migration report export.
+- 198 unit tests (was 178).
+
 ### 1.1.0
 - **Excel report export** — Professional 7-sheet `.xlsx` workbook (Input Fields, Node Sizing, Node Selection Guide, Pricing & Cost, VM Inventory, Wave Plan, SKU Reference) with formatting, auto-filter, and color coding
 - **Node Selection Guide** — Architect-level recommendation rationale with cost efficiency ($/vCPU, $/GB RAM), waste analysis, workload archetypes, regional warnings, and MS Learn source links
